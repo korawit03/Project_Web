@@ -1,0 +1,112 @@
+import React from "react";
+import { Wrench, MapPin, Tag, Trash2, Layers } from "lucide-react";
+import { COLORS } from "../lib/tokens.js";
+import { WORK_CATALOG, CATEGORY_ORDER } from "../lib/options.js";
+import { FieldLabel, TextInput, Select, GroupedSelect } from "./ui.jsx";
+import PhotoDropzone from "./PhotoDropzone.jsx";
+
+// เตรียม groups สำหรับ dropdown "ชิ้นงานหลัก" โดยจัดตามหมวดหมู่ (ประตู/หน้าต่าง/หลังคา/กั้นห้อง)
+const MAIN_WORK_GROUPS = CATEGORY_ORDER.map((category) => ({
+  label: category,
+  options: Object.keys(WORK_CATALOG).filter((name) => WORK_CATALOG[name].category === category),
+}));
+
+export default function WorkItemCard({ item, index, onChange, onRemove, removable }) {
+  const set = (patch) => onChange({ ...item, ...patch });
+
+  // เมื่อเปลี่ยนชิ้นงานหลัก ให้ล้างค่ารายละเอียด/วัสดุเดิมทิ้ง เพราะฟิลด์ชุดใหม่ไม่เกี่ยวกับของเก่า
+  const handleMainWorkChange = (e) => {
+    set({ mainWork: e.target.value, answers: {} });
+  };
+
+  const setAnswer = (fieldKey, value) => {
+    set({ answers: { ...item.answers, [fieldKey]: value } });
+  };
+
+  const catalogEntry = item.mainWork ? WORK_CATALOG[item.mainWork] : null;
+
+  return (
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: COLORS.border, background: "#FAF8F3" }}>
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold text-white" style={{ background: COLORS.charcoal }}>
+            {index + 1}
+          </span>
+          <span className="text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+            ชิ้นงานย่อยรายการที่ {index + 1}
+          </span>
+        </div>
+        {removable && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white"
+            style={{ background: COLORS.red }}
+          >
+            <Trash2 size={12} />
+            ลบข้อมูล
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* 1) เลือกชิ้นงานหลักก่อน */}
+        <div>
+          <FieldLabel icon={Wrench} required tone="amber">
+            เลือกชิ้นงานหลัก
+          </FieldLabel>
+          <GroupedSelect value={item.mainWork} onChange={handleMainWorkChange} groups={MAIN_WORK_GROUPS} placeholder="-- เลือกชิ้นงานช่าง --" />
+        </div>
+
+        {/* 2) รายละเอียด/วัสดุ จะโผล่ตามชิ้นงานที่เลือกไว้ด้านบนเท่านั้น */}
+        {catalogEntry && (
+          <div className="rounded-lg border p-4" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
+            <div className="flex items-center gap-1.5 text-sm font-medium mb-3" style={{ color: COLORS.charcoal }}>
+              <Layers size={14} style={{ color: COLORS.amber }} />
+              รายละเอียด/วัสดุของ "{item.mainWork}"
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {catalogEntry.fields.map((field) => (
+                <div key={field.key}>
+                  <FieldLabel>{field.label}</FieldLabel>
+                  <Select
+                    value={item.answers?.[field.key] || ""}
+                    onChange={(e) => setAnswer(field.key, e.target.value)}
+                    options={field.options}
+                    placeholder={`-- เลือก${field.label} --`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: COLORS.border }}>
+          <FieldLabel icon={MapPin} required tone="amber">
+            ระบุตำแหน่งติดตั้ง (พิมพ์ข้อความ + เลือก/ถ่ายรูปแผนผังได้หลายรูป)
+          </FieldLabel>
+          <TextInput placeholder="เช่น ผนังห้องนอนฝั่งทิศได้" value={item.positionNote} onChange={(e) => set({ positionNote: e.target.value })} />
+          <PhotoDropzone
+            label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง (เลือกได้หลายรูป)"
+            photos={item.positionPhotos}
+            onAdd={(list) => set({ positionPhotos: [...item.positionPhotos, ...list] })}
+            onRemove={(id) => set({ positionPhotos: item.positionPhotos.filter((p) => p.id !== id) })}
+          />
+        </div>
+
+        <PhotoDropzone
+          label="รูปถ่ายหน้างาน / ผลงานจริง (แนบไฟล์หรือเปิดกล้องถ่ายภาพได้หลายรูป)"
+          hint="กดปุ่มด้านล่างเพื่อเลือกรูปภาพจากคลัง หรือเปิดกล้องมือถือถ่ายเพื่อรายงานหน้างาน"
+          photos={item.workPhotos}
+          onAdd={(list) => set({ workPhotos: [...item.workPhotos, ...list] })}
+          onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
+        />
+
+        <div>
+          <FieldLabel icon={Tag}>หมายเหตุเพิ่มเติม</FieldLabel>
+          <TextInput placeholder="กรอกข้อความระบุรายละเอียดพิเศษชิ้นงานย่อย (ถ้ามี)" value={item.note} onChange={(e) => set({ note: e.target.value })} />
+        </div>
+      </div>
+    </div>
+  );
+}
