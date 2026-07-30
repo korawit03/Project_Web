@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Site Work App
 
 ระบบบันทึกข้อมูลหน้างานสำหรับช่าง (React + Tailwind CSS + Firebase)
@@ -27,6 +26,3 @@ src/
 ├── firebase/       การเชื่อมต่อ Firebase
 └── lib/            ค่าคงที่ที่ใช้ร่วมกัน (โทนสี, รายการ dropdown)
 ```
-=======
-# Project_Web
->>>>>>> 950c46fc9aaa9cb6dd95150cf91a10a6ccecd129

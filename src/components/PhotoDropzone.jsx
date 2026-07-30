@@ -1,9 +1,10 @@
 import React, { useRef } from "react";
-import { Camera, X } from "lucide-react";
+import { Camera, Image, X } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 
 export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove }) {
-  const inputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   const handleFiles = (files) => {
     const list = Array.from(files).map((file) => ({
@@ -51,19 +52,49 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove }) 
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="rounded-md border px-3 py-1.5 text-xs font-medium"
-        style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
-      >
-        เลือกไฟล์ {photos.length > 0 && `(${photos.length} รูป)`}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        {/* ปุ่มเปิดกล้องถ่ายภาพโดยตรง (มือถือ) */}
+        <button
+          type="button"
+          onClick={() => cameraInputRef.current?.click()}
+          className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
+        >
+          <Camera size={13} />
+          ถ่ายภาพ
+        </button>
+
+        {/* ปุ่มเลือกรูปจากคลังภาพ/ไฟล์อื่นๆ ในเครื่อง */}
+        <button
+          type="button"
+          onClick={() => galleryInputRef.current?.click()}
+          className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
+        >
+          <Image size={13} />
+          เลือกจากคลังภาพ {photos.length > 0 && `(${photos.length} รูป)`}
+        </button>
+      </div>
+
+      {/* input สำหรับกล้อง - มี capture ทำให้มือถือเปิดกล้องตรงทันที */}
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) handleFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {/* input สำหรับคลังภาพ - ไม่มี capture ทำให้มือถือเปิดตัวเลือก (คลังภาพ/ไฟล์/ที่อื่นๆ) */}
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
         multiple
         className="hidden"
         onChange={(e) => {
