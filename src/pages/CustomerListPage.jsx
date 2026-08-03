@@ -25,6 +25,7 @@ function ProjectCard({ project, onUpdate, onDelete }) {
   const [location, setLocation] = useState(project.location);
   const [items, setItems] = useState(project.items);
   const [errors, setErrors] = useState({ projectName: false, items: {} });
+  const [saving, setSaving] = useState(false);
 
   const startEdit = () => {
     setCustomerName(project.customerName);
@@ -42,19 +43,22 @@ function ProjectCard({ project, onUpdate, onDelete }) {
 
   const errorMessages = buildErrorMessages(errors, items);
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     const nextErrors = validateForm(customerName, items);
     setErrors(nextErrors);
     if (hasErrors(nextErrors)) return;
 
-    onUpdate({
+    setSaving(true);
+    const success = await onUpdate({
       ...project,
       customerName: customerName.trim(),
       location: location.trim(),
       items,
-      updatedAt: new Date().toISOString(), // บันทึกเวลาอัปเดตล่าสุดทุกครั้งที่แก้ไขสำเร็จ
     });
-    setEditing(false);
+    setSaving(false);
+
+    // ปิดโหมดแก้ไขเฉพาะตอนบันทึกสำเร็จ ถ้าล้มเหลวให้ค้างในโหมดแก้ไขไว้ (error alert เด้งจาก App.jsx แล้ว)
+    if (success) setEditing(false);
   };
 
   const handleDelete = () => {
@@ -192,16 +196,18 @@ function ProjectCard({ project, onUpdate, onDelete }) {
         <button
           type="button"
           onClick={handleSaveEdit}
-          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white"
+          disabled={saving}
+          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
           style={{ background: COLORS.charcoal }}
         >
           <Save size={14} style={{ color: COLORS.amber }} />
-          บันทึกการแก้ไข
+          {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
         </button>
         <button
           type="button"
           onClick={cancelEdit}
-          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium"
+          disabled={saving}
+          className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60"
           style={{ border: `1px solid ${COLORS.border}`, color: COLORS.charcoalSoft, background: "white" }}
         >
           <X size={14} />
@@ -212,7 +218,7 @@ function ProjectCard({ project, onUpdate, onDelete }) {
   );
 }
 
-export default function CustomerListPage({ projects, onUpdateProject, onDeleteProject }) {
+export default function CustomerListPage({ projects, loading, onUpdateProject, onDeleteProject }) {
   const grouped = projects.reduce((acc, p) => {
     const key = p.customerName || "(ไม่ระบุชื่อ)";
     if (!acc[key]) acc[key] = [];
@@ -237,24 +243,30 @@ export default function CustomerListPage({ projects, onUpdateProject, onDeletePr
         </h1>
       </div>
 
-      {customerNames.length === 0 ? (
-  <div className="rounded-xl border p-10 text-center" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-    <Users
-      size={40}
-      className="mx-auto mb-3"
-      style={{ color: COLORS.amber, animation: "gentle-bounce 2.2s ease-in-out infinite" }}
-    />
-    <p className="text-sm" style={{ color: COLORS.textMuted }}>
-      ยังไม่มีข้อมูลลูกค้าที่บันทึกไว้ ลองไปกรอกฟอร์ม "โครงงาน" แล้วกดบันทึกดูก่อนได้เลย
-    </p>
-    <style>{`
-      @keyframes gentle-bounce {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-6px); }
-      }
-    `}</style>
-  </div>
-) : (
+      {loading && projects.length === 0 ? (
+        <div className="rounded-xl border p-10 text-center" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+          <p className="text-sm" style={{ color: COLORS.textMuted }}>
+            กำลังโหลดข้อมูล...
+          </p>
+        </div>
+      ) : customerNames.length === 0 ? (
+        <div className="rounded-xl border p-10 text-center" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+          <Users
+            size={40}
+            className="mx-auto mb-3"
+            style={{ color: COLORS.amber, animation: "gentle-bounce 2.2s ease-in-out infinite" }}
+          />
+          <p className="text-sm" style={{ color: COLORS.textMuted }}>
+            ยังไม่มีข้อมูลลูกค้าที่บันทึกไว้ ลองไปกรอกฟอร์ม "โครงงาน" แล้วกดบันทึกดูก่อนได้เลย
+          </p>
+          <style>{`
+            @keyframes gentle-bounce {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-6px); }
+            }
+          `}</style>
+        </div>
+      ) : (
         <div className="space-y-6">
           {customerNames.map((name) => (
             <div key={name} className="rounded-xl border overflow-hidden" style={{ borderColor: COLORS.border, background: COLORS.surface }}>

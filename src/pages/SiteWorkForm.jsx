@@ -5,6 +5,8 @@ import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
 import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
+import { supabase } from "../lib/supabase.js";
+
 // สร้าง object ชิ้นงานเปล่าใหม่ 1 ใบ
 let itemCounter = 1;
 function newWorkItem() {
@@ -26,8 +28,9 @@ export default function SiteWorkForm({ onSaved }) {
   const [savedMsg, setSavedMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({ projectName: false, items: {} });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
-  // เมื่อเคยกดบันทึกแล้วครั้งหนึ่ง ให้ตรวจซ้ำอัตโนมัติทุกครั้งที่แก้ไข
   useEffect(() => {
     if (submitted) {
       setErrors(validateForm(projectName, items));
@@ -40,8 +43,9 @@ export default function SiteWorkForm({ onSaved }) {
 
   const errorMessages = buildErrorMessages(errors, items);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSubmitted(true);
+    setSaveError("");
     const nextErrors = validateForm(projectName, items);
     setErrors(nextErrors);
 
@@ -51,26 +55,67 @@ export default function SiteWorkForm({ onSaved }) {
       return;
     }
 
-    // TODO: ขั้นถัดไป - อัปโหลดรูปขึ้น Firebase Storage แล้วบันทึกลง Firestore จริง
-    const project = {
-      id: `project-${Date.now()}`,
-      customerName: projectName.trim(),
-      location: location.trim(),
-      items,
-      savedAt: new Date().toISOString(),
-    };
+    setSaving(true);
 
-    onSaved(project);
+    try {
+      // 1) insert แถว project หลักก่อน เพื่อเอา id ที่ Supabase generate ให้
+      const { data: projectRow, error: projectError } = await supabase
+        .from("projects")
+        .insert({
+          customer_name: projectName.trim(),
+          location: location.trim(),
+        })
+        .select()
+        .single();
 
-    // เคลียร์ฟอร์มให้พร้อมกรอกรายการถัดไป แต่ยังอยู่หน้าเดิม ไม่เด้งไปหน้าลูกค้า
-    setProjectName("");
-    setLocation("");
-    setItems([newWorkItem()]);
-    setSubmitted(false);
-    setErrors({ projectName: false, items: {} });
-    setSavedMsg("บันทึกข้อมูลเรียบร้อย ดูรายการที่บันทึกได้ที่เมนู \"ลูกค้า\"");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setTimeout(() => setSavedMsg(""), 4000);
+      if (projectError) throw projectError;
+
+      // 2) insert work_items ทั้งหมดของ project นี้ (bulk insert ทีเดียว)
+      const workItemsPayload = items.map((item, idx) => ({
+        project_id: projectRow.id,
+        main_work: item.mainWork,
+        answers: item.answers,
+        position_note: item.positionNote,
+        note: item.note,
+        sort_order: idx,
+      }));
+
+      const { data: insertedItems, error: itemsError } = await supabase
+        .from("work_items")
+        .insert(workItemsPayload)
+        .select();
+
+      if (itemsError) throw itemsError;
+
+      // TODO (step 4): อัปโหลด positionPhotos/workPhotos ขึ้น Supabase Storage
+      // แล้ว insert path ลงตาราง photos โดยอ้างอิง insertedItems[i].id
+
+      // ประกอบ object สำหรับแสดงผลฝั่ง local (ใช้ id จริงจาก DB แล้ว)
+      const project = {
+        id: projectRow.id,
+        customerName: projectRow.customer_name,
+        location: projectRow.location,
+        items, // ยังเป็น items เดิมฝั่ง client (รวมรูปที่ยังไม่ได้อัปโหลด)
+        savedAt: projectRow.saved_at,
+      };
+
+      onSaved(project);
+
+      setProjectName("");
+      setLocation("");
+      setItems([newWorkItem()]);
+      setSubmitted(false);
+      setErrors({ projectName: false, items: {} });
+      setSavedMsg("บันทึกข้อมูลเรียบร้อย ดูรายการที่บันทึกได้ที่เมนู \"ลูกค้า\"");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => setSavedMsg(""), 4000);
+    } catch (err) {
+      console.error("Save project failed:", err);
+      setSaveError("บันทึกข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -88,19 +133,14 @@ export default function SiteWorkForm({ onSaved }) {
 
       <SuccessBurst message={savedMsg} trigger={savedMsg ? Date.now() : null} />
 
-      {/* {errorMessages.length > 0 && (
+      {saveError && (
         <div className="mb-6 rounded-lg border p-4" style={{ borderColor: COLORS.red, background: "#FDECEC" }}>
-          <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold" style={{ color: COLORS.red }}>
+          <p className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: COLORS.red }}>
             <AlertCircle size={16} />
-            กรุณากรอกข้อมูลให้ครบก่อนบันทึก ({errorMessages.length} จุด)
+            {saveError}
           </p>
-          <ul className="ml-1 space-y-1 text-xs" style={{ color: COLORS.red }}>
-            {errorMessages.map((msg, i) => (
-              <li key={i}>• {msg}</li>
-            ))}
-          </ul>
         </div>
-      )} */}
+      )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div>
@@ -145,9 +185,15 @@ export default function SiteWorkForm({ onSaved }) {
       </div>
 
       <div className="mt-7 flex flex-col items-center gap-2">
-        <button type="button" onClick={handleSave} className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95 hover:-translate-y-0.5" style={{ background: COLORS.charcoal }}>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95 hover:-translate-y-0.5 disabled:opacity-60"
+          style={{ background: COLORS.charcoal }}
+        >
           <Save size={16} style={{ color: COLORS.amber }} />
-          บันทึกข้อมูลและอัปเดตลงระบบหลัก
+          {saving ? "กำลังบันทึก..." : "บันทึกข้อมูลและอัปเดตลงระบบหลัก"}
         </button>
       </div>
     </div>
