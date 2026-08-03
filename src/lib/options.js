@@ -14,7 +14,7 @@ export const WORK_CATALOG = {
       { key: "glassColor", label: "สีกระจก", options: ["ใส", "สีเขียว", "ชาดำ", "กระจกฝ้า"] },
       { key: "trimStyle", label: "มือจับ", options: ["แบบโค้ง", "แบบเหลี่ยม"] },
       { key: "handleColor", label: "สีมือจับ", options: ["สแตนเลส", "ดำ", "ขาว"] },
-    ],
+    ],  
   },
   "บานเลื่อน": {
     category: "ประตู",

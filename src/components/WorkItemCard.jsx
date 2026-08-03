@@ -101,13 +101,20 @@ export default function WorkItemCard({ item, index, onChange, onRemove, removabl
           </div>
         )}
 
+          <PhotoDropzone
+            label="รูปถ่ายหน้างาน / ขนาดชิ้นงาน"
+            hint="กดปุ่มด้านล่างเพื่อเลือกรูปภาพจากคลัง หรือเปิดกล้องมือถือถ่ายเพื่อรายงานหน้างาน"
+            photos={item.workPhotos}
+            onAdd={(list) => set({ workPhotos: [...item.workPhotos, ...list] })}
+            onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
+          />
         {/* 3) ตำแหน่งติดตั้ง */}
         <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: errors.positionNote ? COLORS.red : COLORS.border }}>
           <FieldLabel icon={MapPin} required tone="amber">
             ระบุตำแหน่งติดตั้ง (พิมพ์ข้อความ + เลือก/ถ่ายรูปแผนผังได้หลายรูป)
           </FieldLabel>
           <TextInput
-            placeholder="เช่น ผนังห้องนอนฝั่งทิศได้"
+            placeholder=""
             value={item.positionNote}
             onChange={(e) => set({ positionNote: e.target.value })}
             error={errors.positionNote}
@@ -121,18 +128,11 @@ export default function WorkItemCard({ item, index, onChange, onRemove, removabl
           />
         </div>
 
-        <PhotoDropzone
-          label="รูปถ่ายหน้างาน / ผลงานจริง (แนบไฟล์หรือเปิดกล้องถ่ายภาพได้หลายรูป)"
-          hint="กดปุ่มด้านล่างเพื่อเลือกรูปภาพจากคลัง หรือเปิดกล้องมือถือถ่ายเพื่อรายงานหน้างาน"
-          photos={item.workPhotos}
-          onAdd={(list) => set({ workPhotos: [...item.workPhotos, ...list] })}
-          onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
-        />
 
         {/* หมายเหตุเพิ่มเติม - ไม่บังคับ ไม่มีกรอบแดง */}
         <div>
           <FieldLabel icon={Tag}>หมายเหตุเพิ่มเติม</FieldLabel>
-          <TextInput placeholder="กรอกข้อความระบุรายละเอียดพิเศษชิ้นงานย่อย (ถ้ามี)" value={item.note} onChange={(e) => set({ note: e.target.value })} />
+          <TextInput placeholder="" value={item.note} onChange={(e) => set({ note: e.target.value })} />
         </div>
       </div>
     </div>

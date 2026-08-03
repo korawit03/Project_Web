@@ -5,6 +5,7 @@ import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
 import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
+// สร้าง object ชิ้นงานเปล่าใหม่ 1 ใบ
 let itemCounter = 1;
 function newWorkItem() {
   return {
@@ -105,7 +106,7 @@ export default function SiteWorkForm({ onSaved }) {
         <div>
           <FieldLabel required>ชื่อโครงการ / ข้อมูลลูกค้า</FieldLabel>
           <TextInput
-            placeholder="เช่น คุณสมชาย - บ้านเดี่ยว ซ.ลาดพร้าว 15"
+            placeholder=""
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
             error={errors.projectName}
@@ -114,7 +115,7 @@ export default function SiteWorkForm({ onSaved }) {
         </div>
         <div>
           <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
-          <TextInput placeholder="ที่อยู่ หรือพิกัด GPS" value={location} onChange={(e) => setLocation(e.target.value)} />
+          <TextInput placeholder="" value={location} onChange={(e) => setLocation(e.target.value)} />
         </div>
       </div>
 

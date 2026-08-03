@@ -12,7 +12,7 @@ export default function Sidebar({ activeView, onNavigate }) {
     <aside className="hidden md:flex w-60 shrink-0 flex-col" style={{ background: COLORS.charcoal }}>
       <div className="flex items-center gap-2 px-5 py-5 border-b" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <span className="group flex h-8 w-8 items-center justify-center rounded-md" style={{ background: COLORS.amber }}>
-  <Wrench size={16} color={COLORS.charcoal} className="transition-transform duration-300 group-hover:rotate-[25deg]" />
+  <Wrench size={16} color={COLORS.charcoal} className="transition-transform duration-300 group-hover:rotate-25" />
 </span>
         <div className="leading-tight">
           <p className="text-sm font-bold text-white">ระบบงานช่าง</p>
