@@ -7,7 +7,6 @@ import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.j
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 
-// สร้าง object ชิ้นงานเปล่าใหม่ 1 ใบ
 let itemCounter = 1;
 function newWorkItem() {
   return {
@@ -21,7 +20,7 @@ function newWorkItem() {
   };
 }
 
-export default function SiteWorkForm({ onSaved }) {
+export default function SiteWorkForm({ onSaved, workCatalog, categoryOrder, catalogLoading }) {
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState("");
   const [items, setItems] = useState([newWorkItem()]);
@@ -33,20 +32,20 @@ export default function SiteWorkForm({ onSaved }) {
 
   useEffect(() => {
     if (submitted) {
-      setErrors(validateForm(projectName, items));
+      setErrors(validateForm(projectName, items, workCatalog));
     }
-  }, [submitted, projectName, items]);
+  }, [submitted, projectName, items, workCatalog]);
 
   const updateItem = (id, next) => setItems((prev) => prev.map((it) => (it.id === id ? next : it)));
   const removeItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
   const addItem = () => setItems((prev) => [...prev, newWorkItem()]);
 
-  const errorMessages = buildErrorMessages(errors, items);
+  const errorMessages = buildErrorMessages(errors, items, workCatalog);
 
   const handleSave = async () => {
     setSubmitted(true);
     setSaveError("");
-    const nextErrors = validateForm(projectName, items);
+    const nextErrors = validateForm(projectName, items, workCatalog);
     setErrors(nextErrors);
 
     if (hasErrors(nextErrors)) {
@@ -58,7 +57,6 @@ export default function SiteWorkForm({ onSaved }) {
     setSaving(true);
 
     try {
-      // 1) insert แถว project หลักก่อน เพื่อเอา id ที่ Supabase generate ให้
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({
@@ -70,7 +68,6 @@ export default function SiteWorkForm({ onSaved }) {
 
       if (projectError) throw projectError;
 
-      // 2) insert work_items ทั้งหมดของ project นี้ (bulk insert ทีเดียว)
       const workItemsPayload = items.map((item, idx) => ({
         project_id: projectRow.id,
         main_work: item.mainWork,
@@ -80,26 +77,13 @@ export default function SiteWorkForm({ onSaved }) {
         sort_order: idx,
       }));
 
-      const { data: insertedItems, error: itemsError } = await supabase
-        .from("work_items")
-        .insert(workItemsPayload)
-        .select();
+      const { error: itemsError } = await supabase.from("work_items").insert(workItemsPayload);
 
       if (itemsError) throw itemsError;
 
       // TODO (step 4): อัปโหลด positionPhotos/workPhotos ขึ้น Supabase Storage
-      // แล้ว insert path ลงตาราง photos โดยอ้างอิง insertedItems[i].id
 
-      // ประกอบ object สำหรับแสดงผลฝั่ง local (ใช้ id จริงจาก DB แล้ว)
-      const project = {
-        id: projectRow.id,
-        customerName: projectRow.customer_name,
-        location: projectRow.location,
-        items, // ยังเป็น items เดิมฝั่ง client (รวมรูปที่ยังไม่ได้อัปโหลด)
-        savedAt: projectRow.saved_at,
-      };
-
-      onSaved(project);
+      onSaved();
 
       setProjectName("");
       setLocation("");
@@ -142,6 +126,12 @@ export default function SiteWorkForm({ onSaved }) {
         </div>
       )}
 
+      {catalogLoading && (
+        <div className="mb-6 rounded-lg border p-3 text-sm" style={{ borderColor: COLORS.border, color: COLORS.textMuted }}>
+          กำลังโหลดรายการชิ้นงาน...
+        </div>
+      )}
+
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div>
           <FieldLabel required>ชื่อโครงการ / ข้อมูลลูกค้า</FieldLabel>
@@ -180,6 +170,8 @@ export default function SiteWorkForm({ onSaved }) {
             onRemove={() => removeItem(item.id)}
             removable={items.length > 1}
             errors={errors.items[item.id] || {}}
+            workCatalog={workCatalog}
+            categoryOrder={categoryOrder}
           />
         ))}
       </div>

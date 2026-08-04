@@ -18,8 +18,7 @@ function newWorkItem() {
   };
 }
 
-// การ์ดรายการโครงการ 1 รายการ - สลับได้ระหว่าง "โหมดแสดงผล" กับ "โหมดแก้ไข"
-function ProjectCard({ project, onUpdate, onDelete }) {
+function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }) {
   const [editing, setEditing] = useState(false);
   const [customerName, setCustomerName] = useState(project.customerName);
   const [location, setLocation] = useState(project.location);
@@ -41,10 +40,10 @@ function ProjectCard({ project, onUpdate, onDelete }) {
   const removeItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
   const addItem = () => setItems((prev) => [...prev, newWorkItem()]);
 
-  const errorMessages = buildErrorMessages(errors, items);
+  const errorMessages = buildErrorMessages(errors, items, workCatalog);
 
   const handleSaveEdit = async () => {
-    const nextErrors = validateForm(customerName, items);
+    const nextErrors = validateForm(customerName, items, workCatalog);
     setErrors(nextErrors);
     if (hasErrors(nextErrors)) return;
 
@@ -57,7 +56,6 @@ function ProjectCard({ project, onUpdate, onDelete }) {
     });
     setSaving(false);
 
-    // ปิดโหมดแก้ไขเฉพาะตอนบันทึกสำเร็จ ถ้าล้มเหลวให้ค้างในโหมดแก้ไขไว้ (error alert เด้งจาก App.jsx แล้ว)
     if (success) setEditing(false);
   };
 
@@ -66,10 +64,8 @@ function ProjectCard({ project, onUpdate, onDelete }) {
     if (confirmed) onDelete();
   };
 
-  // มีการแก้ไขเกิดขึ้นจริงหรือยัง (เวลาต่างจากตอนสร้างครั้งแรก)
   const wasEdited = project.updatedAt && project.updatedAt !== project.savedAt;
 
-  // ---------- โหมดแสดงผลปกติ ----------
   if (!editing) {
     return (
       <div className="p-4 space-y-2">
@@ -133,7 +129,6 @@ function ProjectCard({ project, onUpdate, onDelete }) {
     );
   }
 
-  // ---------- โหมดแก้ไข: แก้ได้ครบทุกอย่างเหมือนฟอร์มกรอกข้อมูลหลัก ----------
   return (
     <div className="p-4 space-y-4" style={{ background: "#FCFBF8" }}>
       {errorMessages.length > 0 && (
@@ -188,6 +183,8 @@ function ProjectCard({ project, onUpdate, onDelete }) {
             onRemove={() => removeItem(item.id)}
             removable={items.length > 1}
             errors={errors.items[item.id] || {}}
+            workCatalog={workCatalog}
+            categoryOrder={categoryOrder}
           />
         ))}
       </div>
@@ -218,7 +215,7 @@ function ProjectCard({ project, onUpdate, onDelete }) {
   );
 }
 
-export default function CustomerListPage({ projects, loading, onUpdateProject, onDeleteProject }) {
+export default function CustomerListPage({ projects, loading, onUpdateProject, onDeleteProject, workCatalog, categoryOrder }) {
   const grouped = projects.reduce((acc, p) => {
     const key = p.customerName || "(ไม่ระบุชื่อ)";
     if (!acc[key]) acc[key] = [];
@@ -290,6 +287,8 @@ export default function CustomerListPage({ projects, loading, onUpdateProject, o
                       project={p}
                       onUpdate={(updated) => onUpdateProject(p.id, updated)}
                       onDelete={() => onDeleteProject(p.id)}
+                      workCatalog={workCatalog}
+                      categoryOrder={categoryOrder}
                     />
                   ))}
               </div>

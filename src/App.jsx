@@ -6,8 +6,8 @@ import SiteWorkForm from "./pages/SiteWorkForm.jsx";
 import CustomerListPage from "./pages/CustomerListPage.jsx";
 import { COLORS } from "./lib/tokens.js";
 import { supabase } from "./lib/supabase.js";
+import { useWorkCatalog } from "./lib/useWorkCatalog.js";
 
-// แปลงข้อมูลจาก Supabase (snake_case, work_items) ให้เป็น shape ที่ UI เดิมใช้อยู่ (camelCase, items[])
 function mapProjectFromDb(row) {
   return {
     id: row.id,
@@ -24,7 +24,7 @@ function mapProjectFromDb(row) {
         answers: it.answers || {},
         positionNote: it.position_note || "",
         note: it.note || "",
-        positionPhotos: [], // TODO (step 4): ดึงจากตาราง photos
+        positionPhotos: [],
         workPhotos: [],
       })),
   };
@@ -34,6 +34,7 @@ export default function App() {
   const [activeView, setActiveView] = useState("form");
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -56,12 +57,10 @@ export default function App() {
     loadProjects();
   }, [loadProjects]);
 
-  // SiteWorkForm insert ลง Supabase เองเรียบร้อยแล้ว (step 2) แค่โหลดข้อมูลล่าสุดกลับมาแสดง
   const handleSaved = () => {
     loadProjects();
   };
 
-  // คืนค่า true/false บอกผล เพื่อให้ CustomerListPage รู้ว่าปิดโหมดแก้ไขได้ไหม
   const handleUpdateProject = async (projectId, updatedProject) => {
     const { error: projectError } = await supabase
       .from("projects")
@@ -131,13 +130,20 @@ export default function App() {
 
         <main className="flex-1 min-w-0 pb-20 md:pb-0">
           {activeView === "form" ? (
-            <SiteWorkForm onSaved={handleSaved} />
+            <SiteWorkForm
+              onSaved={handleSaved}
+              workCatalog={workCatalog}
+              categoryOrder={categoryOrder}
+              catalogLoading={catalogLoading}
+            />
           ) : (
             <CustomerListPage
               projects={projects}
               loading={loading}
               onUpdateProject={handleUpdateProject}
               onDeleteProject={handleDeleteProject}
+              workCatalog={workCatalog}
+              categoryOrder={categoryOrder}
             />
           )}
         </main>

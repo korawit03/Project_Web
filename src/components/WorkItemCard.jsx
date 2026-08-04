@@ -1,17 +1,39 @@
-import React from "react";
-import { Wrench, MapPin, Tag, Trash2, Layers, AlertCircle } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
-import { WORK_CATALOG, CATEGORY_ORDER } from "../lib/options.js";
-import { FieldLabel, TextInput, Select, GroupedSelect, ErrorText } from "./ui.jsx";
+import { FieldLabel, TextInput, Select, ErrorText } from "./ui.jsx";
 import PhotoDropzone from "./PhotoDropzone.jsx";
 
-const MAIN_WORK_GROUPS = CATEGORY_ORDER.map((category) => ({
-  label: category,
-  options: Object.keys(WORK_CATALOG).filter((name) => WORK_CATALOG[name].category === category),
-}));
+export default function WorkItemCard({
+  item,
+  index,
+  onChange,
+  onRemove,
+  removable,
+  errors = {},
+  workCatalog,
+  categoryOrder,
+}) {
+  // จัดกลุ่มชื่อชิ้นงานย่อยตามหมวดหมู่ - คำนวณใหม่เฉพาะตอน catalog เปลี่ยน (เช่น โหลดเสร็จครั้งแรก)
+  const workTypesByCategory = useMemo(() => {
+    return categoryOrder.reduce((acc, category) => {
+      acc[category] = Object.keys(workCatalog).filter((name) => workCatalog[name].category === category);
+      return acc;
+    }, {});
+  }, [workCatalog, categoryOrder]);
 
-export default function WorkItemCard({ item, index, onChange, onRemove, removable, errors = {} }) {
+  // หมวดหมู่ที่เลือกอยู่ - ตอนโหลดครั้งแรก (โหมดแก้ไข) ให้เดาจาก mainWork ที่มีอยู่แล้ว
+  const [selectedCategory, setSelectedCategory] = useState(
+    () => (item.mainWork && workCatalog[item.mainWork]?.category) || ""
+  );
+
   const set = (patch) => onChange({ ...item, ...patch });
+
+  const handleCategoryChange = (e) => {
+    const category = e.target.value;
+    setSelectedCategory(category);
+    set({ mainWork: "", answers: {} });
+  };
 
   const handleMainWorkChange = (e) => {
     set({ mainWork: e.target.value, answers: {} });
@@ -21,7 +43,8 @@ export default function WorkItemCard({ item, index, onChange, onRemove, removabl
     set({ answers: { ...item.answers, [fieldKey]: value } });
   };
 
-  const catalogEntry = item.mainWork ? WORK_CATALOG[item.mainWork] : null;
+  const subTypeOptions = selectedCategory ? workTypesByCategory[selectedCategory] || [] : [];
+  const catalogEntry = item.mainWork ? workCatalog[item.mainWork] : null;
   const answerErrorCount = errors.answers ? Object.keys(errors.answers).length : 0;
   const hasCardError = Boolean(errors.mainWork || errors.positionNote || answerErrorCount > 0);
 
@@ -59,22 +82,33 @@ export default function WorkItemCard({ item, index, onChange, onRemove, removabl
       </div>
 
       <div className="p-4 space-y-4">
-        {/* 1) เลือกชิ้นงานหลักก่อน */}
-        <div>
-          <FieldLabel icon={Wrench} required tone="amber">
-            เลือกชิ้นงานหลัก
-          </FieldLabel>
-          <GroupedSelect
-            value={item.mainWork}
-            onChange={handleMainWorkChange}
-            groups={MAIN_WORK_GROUPS}
-            placeholder="-- เลือกชิ้นงานช่าง --"
-            error={errors.mainWork}
-          />
-          {errors.mainWork && <ErrorText>กรุณาเลือกชิ้นงานหลัก</ErrorText>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <FieldLabel icon={Wrench} required tone="amber">
+              หมวดหมู่งานหลัก
+            </FieldLabel>
+            <Select
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              options={categoryOrder}
+              placeholder="-- เลือกหมวดหมู่งาน --"
+            />
+          </div>
+          <div>
+            <FieldLabel icon={Layers2} required tone="amber">
+              ชิ้นงานย่อย
+            </FieldLabel>
+            <Select
+              value={item.mainWork}
+              onChange={handleMainWorkChange}
+              options={subTypeOptions}
+              placeholder={selectedCategory ? "-- เลือกชิ้นงานย่อย --" : "-- เลือกหมวดหมู่ก่อน --"}
+              error={errors.mainWork}
+            />
+            {errors.mainWork && <ErrorText>กรุณาเลือกชิ้นงานย่อย</ErrorText>}
+          </div>
         </div>
 
-        {/* 2) รายละเอียด/วัสดุ - ทุกช่องบังคับกรอก มีกรอบแดงถ้ายังไม่เลือก */}
         {catalogEntry && (
           <div
             className="rounded-lg border p-4"
@@ -101,14 +135,14 @@ export default function WorkItemCard({ item, index, onChange, onRemove, removabl
           </div>
         )}
 
-          <PhotoDropzone
-            label="รูปถ่ายหน้างาน / ขนาดชิ้นงาน"
-            hint="กดปุ่มด้านล่างเพื่อเลือกรูปภาพจากคลัง หรือเปิดกล้องมือถือถ่ายเพื่อรายงานหน้างาน"
-            photos={item.workPhotos}
-            onAdd={(list) => set({ workPhotos: [...item.workPhotos, ...list] })}
-            onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
-          />
-        {/* 3) ตำแหน่งติดตั้ง */}
+        <PhotoDropzone
+          label="รูปถ่ายหน้างาน / ขนาดชิ้นงาน"
+          hint="กดปุ่มด้านล่างเพื่อเลือกรูปภาพจากคลัง หรือเปิดกล้องมือถือถ่ายเพื่อรายงานหน้างาน"
+          photos={item.workPhotos}
+          onAdd={(list) => set({ workPhotos: [...item.workPhotos, ...list] })}
+          onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
+        />
+
         <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: errors.positionNote ? COLORS.red : COLORS.border }}>
           <FieldLabel icon={MapPin} required tone="amber">
             ระบุตำแหน่งติดตั้ง (พิมพ์ข้อความ + เลือก/ถ่ายรูปแผนผังได้หลายรูป)
@@ -128,8 +162,6 @@ export default function WorkItemCard({ item, index, onChange, onRemove, removabl
           />
         </div>
 
-
-        {/* หมายเหตุเพิ่มเติม - ไม่บังคับ ไม่มีกรอบแดง */}
         <div>
           <FieldLabel icon={Tag}>หมายเหตุเพิ่มเติม</FieldLabel>
           <TextInput placeholder="" value={item.note} onChange={(e) => set({ note: e.target.value })} />
