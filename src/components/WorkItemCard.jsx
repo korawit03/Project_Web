@@ -48,6 +48,10 @@ export default function WorkItemCard({
   const answerErrorCount = errors.answers ? Object.keys(errors.answers).length : 0;
   const hasCardError = Boolean(errors.mainWork || errors.positionNote || answerErrorCount > 0);
 
+  // แยก error: ถ้ายังไม่เลือกหมวดหมู่เลย ให้ error โชว์ที่ "หมวดหมู่งานหลัก"
+  // ถ้าเลือกหมวดหมู่แล้วแต่ยังไม่เลือกชิ้นงานย่อย ให้ error โชว์ที่ "ชิ้นงานย่อย" เหมือนเดิม
+  const categoryError = errors.mainWork && !selectedCategory;
+  const subTypeError = errors.mainWork && Boolean(selectedCategory);
   return (
     <div
       className="rounded-xl border overflow-hidden"
@@ -71,7 +75,12 @@ export default function WorkItemCard({
         {removable && (
           <button
             type="button"
-            onClick={onRemove}
+            onClick={() => {
+              const confirmed = window.confirm(
+                `ต้องการลบชิ้นงานย่อยรายการที่ ${index + 1} นี้ใช่ไหม? หากลบแล้วต้องกรอกข้อมูลใหม่ทั้งหมด`
+              );
+              if (confirmed) onRemove();
+            }}
             className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white"
             style={{ background: COLORS.red }}
           >
@@ -92,7 +101,9 @@ export default function WorkItemCard({
               onChange={handleCategoryChange}
               options={categoryOrder}
               placeholder="-- เลือกหมวดหมู่งาน --"
+              error={categoryError}
             />
+            {categoryError && <ErrorText>กรุณาเลือกหมวดหมู่งานหลัก</ErrorText>}
           </div>
           <div>
             <FieldLabel icon={Layers2} required tone="amber">
@@ -103,9 +114,9 @@ export default function WorkItemCard({
               onChange={handleMainWorkChange}
               options={subTypeOptions}
               placeholder={selectedCategory ? "-- เลือกชิ้นงานย่อย --" : "-- เลือกหมวดหมู่ก่อน --"}
-              error={errors.mainWork}
+              error={subTypeError}
             />
-            {errors.mainWork && <ErrorText>กรุณาเลือกชิ้นงานย่อย</ErrorText>}
+            {subTypeError && <ErrorText>กรุณาเลือกชิ้นงานย่อย</ErrorText>}
           </div>
         </div>
 

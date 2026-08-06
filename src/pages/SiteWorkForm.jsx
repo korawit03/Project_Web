@@ -54,6 +54,11 @@ export default function SiteWorkForm({ onSaved, workCatalog, categoryOrder, cata
       return;
     }
 
+    const confirmed = window.confirm("ยืนยันบันทึกข้อมูลหน้างานนี้ใช่หรือไม่?");
+    if (!confirmed) return;
+
+    setSaving(true);
+
     setSaving(true);
 
     try {
