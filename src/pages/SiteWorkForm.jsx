@@ -20,7 +20,14 @@ function newWorkItem() {
   };
 }
 
-export default function SiteWorkForm({ onSaved, workCatalog, categoryOrder, catalogLoading }) {
+export default function SiteWorkForm({
+  onSaved,
+  workCatalog,
+  categoryOrder,
+  catalogLoading,
+  customers,
+  findOrCreateCustomer,
+}) {
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState("");
   const [items, setItems] = useState([newWorkItem()]);
@@ -59,13 +66,14 @@ export default function SiteWorkForm({ onSaved, workCatalog, categoryOrder, cata
 
     setSaving(true);
 
-    setSaving(true);
-
     try {
+      // หาลูกค้าเดิมจากชื่อที่พิมพ์ หรือสร้างลูกค้าใหม่อัตโนมัติถ้ายังไม่เคยมีในระบบ
+      const customer = await findOrCreateCustomer(projectName);
+
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({
-          customer_name: projectName.trim(),
+          customer_id: customer.id,
           location: location.trim(),
         })
         .select()
@@ -142,10 +150,17 @@ export default function SiteWorkForm({ onSaved, workCatalog, categoryOrder, cata
           <FieldLabel required>ชื่อโครงการ / ข้อมูลลูกค้า</FieldLabel>
           <TextInput
             placeholder=""
+            list="customer-suggestions"
             value={projectName}
             onChange={(e) => setProjectName(e.target.value)}
             error={errors.projectName}
           />
+          {/* พิมพ์ชื่อลูกค้าเดิมจะมีตัวช่วยเดา ป้องกันพิมพ์ชื่อเพี้ยนแล้วระบบมองเป็นลูกค้าคนละคน */}
+          <datalist id="customer-suggestions">
+            {customers.map((c) => (
+              <option key={c.id} value={c.name} />
+            ))}
+          </datalist>
           {errors.projectName && <ErrorText>กรุณากรอกชื่อโครงการ / ข้อมูลลูกค้า</ErrorText>}
         </div>
         <div>

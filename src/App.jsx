@@ -7,11 +7,14 @@ import CustomerListPage from "./pages/CustomerListPage.jsx";
 import { COLORS } from "./lib/tokens.js";
 import { supabase } from "./lib/supabase.js";
 import { useWorkCatalog } from "./lib/useWorkCatalog.js";
+import { useCustomers } from "./lib/useCustomers.js";
 
 function mapProjectFromDb(row) {
   return {
     id: row.id,
-    customerName: row.customer_name,
+    customerId: row.customer_id,
+    customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
+    customerPhone: row.customer?.phone || "",
     location: row.location,
     savedAt: row.saved_at,
     updatedAt: row.updated_at,
@@ -35,12 +38,13 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
+  const { customers, findOrCreateCustomer } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("projects")
-      .select("*, work_items(*)")
+      .select("*, customer:customers(*), work_items(*)")
       .order("saved_at", { ascending: false });
 
     if (error) {
@@ -62,10 +66,20 @@ export default function App() {
   };
 
   const handleUpdateProject = async (projectId, updatedProject) => {
+    // หาลูกค้าเดิมจากชื่อที่แก้ไข หรือสร้างลูกค้าใหม่ถ้าเปลี่ยนเป็นชื่อที่ยังไม่เคยมี
+    let customer;
+    try {
+      customer = await findOrCreateCustomer(updatedProject.customerName);
+    } catch (err) {
+      console.error("Resolve customer failed:", err);
+      alert("บันทึกข้อมูลลูกค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      return false;
+    }
+
     const { error: projectError } = await supabase
       .from("projects")
       .update({
-        customer_name: updatedProject.customerName,
+        customer_id: customer.id,
         location: updatedProject.location,
         updated_at: new Date().toISOString(),
       })
@@ -135,6 +149,8 @@ export default function App() {
               workCatalog={workCatalog}
               categoryOrder={categoryOrder}
               catalogLoading={catalogLoading}
+              customers={customers}
+              findOrCreateCustomer={findOrCreateCustomer}
             />
           ) : (
             <CustomerListPage

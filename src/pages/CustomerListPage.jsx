@@ -162,7 +162,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
           <Layers size={15} style={{ color: COLORS.amber }} />
           ชิ้นงาน
         </div>
-        <button
+        {/* <button
           type="button"
           onClick={addItem}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
@@ -170,7 +170,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
         >
           <Plus size={13} />
           เพิ่มชิ้นงาน
-        </button>
+        </button> */}
       </div>
 
       <div className="space-y-4">
@@ -216,16 +216,17 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
 }
 
 export default function CustomerListPage({ projects, loading, onUpdateProject, onDeleteProject, workCatalog, categoryOrder }) {
+  // จัดกลุ่มด้วย customerId จริง (ไม่ใช่ text) กันปัญหาพิมพ์ชื่อเพี้ยนแล้วระบบมองเป็นคนละคน
   const grouped = projects.reduce((acc, p) => {
-    const key = p.customerName || "(ไม่ระบุชื่อ)";
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(p);
+    const key = p.customerId || `unassigned-${p.customerName}`;
+    if (!acc[key]) acc[key] = { name: p.customerName, projects: [] };
+    acc[key].projects.push(p);
     return acc;
   }, {});
 
-  const customerNames = Object.keys(grouped).sort((a, b) => {
-    const latestA = Math.max(...grouped[a].map((p) => new Date(p.updatedAt || p.savedAt).getTime()));
-    const latestB = Math.max(...grouped[b].map((p) => new Date(p.updatedAt || p.savedAt).getTime()));
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    const latestA = Math.max(...grouped[a].projects.map((p) => new Date(p.updatedAt || p.savedAt).getTime()));
+    const latestB = Math.max(...grouped[b].projects.map((p) => new Date(p.updatedAt || p.savedAt).getTime()));
     return latestB - latestA;
   });
 
@@ -246,7 +247,7 @@ export default function CustomerListPage({ projects, loading, onUpdateProject, o
             กำลังโหลดข้อมูล...
           </p>
         </div>
-      ) : customerNames.length === 0 ? (
+      ) : groupKeys.length === 0 ? (
         <div className="rounded-xl border p-10 text-center" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
           <Users
             size={40}
@@ -265,35 +266,38 @@ export default function CustomerListPage({ projects, loading, onUpdateProject, o
         </div>
       ) : (
         <div className="space-y-6">
-          {customerNames.map((name) => (
-            <div key={name} className="rounded-xl border overflow-hidden" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-              <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: COLORS.border, background: "#FAF8F3" }}>
-                <Users size={15} style={{ color: COLORS.amber }} />
-                <span className="text-sm font-semibold" style={{ color: COLORS.charcoal }}>
-                  {name}
-                </span>
-                <span className="ml-auto text-xs" style={{ color: COLORS.textMuted }}>
-                  {grouped[name].length} รายการบันทึก
-                </span>
-              </div>
+          {groupKeys.map((key) => {
+            const group = grouped[key];
+            return (
+              <div key={key} className="rounded-xl border overflow-hidden" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+                <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: COLORS.border, background: "#FAF8F3" }}>
+                  <Users size={15} style={{ color: COLORS.amber }} />
+                  <span className="text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+                    {group.name}
+                  </span>
+                  <span className="ml-auto text-xs" style={{ color: COLORS.textMuted }}>
+                    {group.projects.length} รายการบันทึก
+                  </span>
+                </div>
 
-              <div className="divide-y" style={{ borderColor: COLORS.border }}>
-                {grouped[name]
-                  .slice()
-                  .sort((a, b) => new Date(b.updatedAt || b.savedAt) - new Date(a.updatedAt || a.savedAt))
-                  .map((p) => (
-                    <ProjectCard
-                      key={p.id}
-                      project={p}
-                      onUpdate={(updated) => onUpdateProject(p.id, updated)}
-                      onDelete={() => onDeleteProject(p.id)}
-                      workCatalog={workCatalog}
-                      categoryOrder={categoryOrder}
-                    />
-                  ))}
+                <div className="divide-y" style={{ borderColor: COLORS.border }}>
+                  {group.projects
+                    .slice()
+                    .sort((a, b) => new Date(b.updatedAt || b.savedAt) - new Date(a.updatedAt || a.savedAt))
+                    .map((p) => (
+                      <ProjectCard
+                        key={p.id}
+                        project={p}
+                        onUpdate={(updated) => onUpdateProject(p.id, updated)}
+                        onDelete={() => onDeleteProject(p.id)}
+                        workCatalog={workCatalog}
+                        categoryOrder={categoryOrder}
+                      />
+                    ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
