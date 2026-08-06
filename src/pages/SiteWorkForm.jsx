@@ -3,6 +3,7 @@ import { Wrench, Plus, MapPin, Layers, Save, AlertCircle } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
+import LocationPicker from "../components/LocationPicker.jsx";
 import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
@@ -30,6 +31,8 @@ export default function SiteWorkForm({
 }) {
   const [projectName, setProjectName] = useState("");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [items, setItems] = useState([newWorkItem()]);
   const [savedMsg, setSavedMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -75,6 +78,8 @@ export default function SiteWorkForm({
         .insert({
           customer_id: customer.id,
           location: location.trim(),
+          latitude,
+          longitude,
         })
         .select()
         .single();
@@ -100,6 +105,8 @@ export default function SiteWorkForm({
 
       setProjectName("");
       setLocation("");
+      setLatitude(null);
+      setLongitude(null);
       setItems([newWorkItem()]);
       setSubmitted(false);
       setErrors({ projectName: false, items: {} });
@@ -166,6 +173,16 @@ export default function SiteWorkForm({
         <div>
           <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
           <TextInput placeholder="" value={location} onChange={(e) => setLocation(e.target.value)} />
+          <div className="mt-2">
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={({ latitude: lat, longitude: lng }) => {
+                setLatitude(lat);
+                setLongitude(lng);
+              }}
+            />
+          </div>
         </div>
       </div>
 

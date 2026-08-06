@@ -16,6 +16,8 @@ function mapProjectFromDb(row) {
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
     customerPhone: row.customer?.phone || "",
     location: row.location,
+    latitude: row.latitude,
+    longitude: row.longitude,
     savedAt: row.saved_at,
     updatedAt: row.updated_at,
     items: (row.work_items || [])
@@ -81,6 +83,8 @@ export default function App() {
       .update({
         customer_id: customer.id,
         location: updatedProject.location,
+        latitude: updatedProject.latitude,
+        longitude: updatedProject.longitude,
         updated_at: new Date().toISOString(),
       })
       .eq("id", projectId);

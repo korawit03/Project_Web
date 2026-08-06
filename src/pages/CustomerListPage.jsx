@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Users, MapPin, Layers, Clock, ClipboardList, Pencil, X, Save, AlertCircle, Plus, Trash2, History } from "lucide-react";
+import { Users, MapPin, Layers, Clock, ClipboardList, Pencil, X, Save, AlertCircle, Plus, Trash2, History, ExternalLink } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
+import LocationPicker from "../components/LocationPicker.jsx";
 import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.js";
 
 let editItemCounter = 1;
@@ -22,6 +23,8 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
   const [editing, setEditing] = useState(false);
   const [customerName, setCustomerName] = useState(project.customerName);
   const [location, setLocation] = useState(project.location);
+  const [latitude, setLatitude] = useState(project.latitude ?? null);
+  const [longitude, setLongitude] = useState(project.longitude ?? null);
   const [items, setItems] = useState(project.items);
   const [errors, setErrors] = useState({ projectName: false, items: {} });
   const [saving, setSaving] = useState(false);
@@ -29,6 +32,8 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
   const startEdit = () => {
     setCustomerName(project.customerName);
     setLocation(project.location);
+    setLatitude(project.latitude ?? null);
+    setLongitude(project.longitude ?? null);
     setItems(project.items);
     setErrors({ projectName: false, items: {} });
     setEditing(true);
@@ -52,6 +57,8 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
       ...project,
       customerName: customerName.trim(),
       location: location.trim(),
+      latitude,
+      longitude,
       items,
     });
     setSaving(false);
@@ -65,6 +72,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
   };
 
   const wasEdited = project.updatedAt && project.updatedAt !== project.savedAt;
+  const hasPin = project.latitude != null && project.longitude != null;
 
   if (!editing) {
     return (
@@ -76,6 +84,19 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
                 <MapPin size={12} />
                 {project.location}
               </span>
+            )}
+            {hasPin && (
+              <a
+                href={`https://www.google.com/maps?q=${project.latitude},${project.longitude}`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 font-medium"
+                style={{ color: COLORS.amberDark }}
+              >
+                <MapPin size={12} />
+                เปิดดูในแผนที่
+                <ExternalLink size={10} />
+              </a>
             )}
             <span className="flex items-center gap-1">
               <Clock size={12} />
@@ -154,6 +175,16 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
         <div>
           <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
           <TextInput value={location} onChange={(e) => setLocation(e.target.value)} />
+          <div className="mt-2">
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={({ latitude: lat, longitude: lng }) => {
+                setLatitude(lat);
+                setLongitude(lng);
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -162,7 +193,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
           <Layers size={15} style={{ color: COLORS.amber }} />
           ชิ้นงาน
         </div>
-        {/* <button
+        <button
           type="button"
           onClick={addItem}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
@@ -170,7 +201,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
         >
           <Plus size={13} />
           เพิ่มชิ้นงาน
-        </button> */}
+        </button>
       </div>
 
       <div className="space-y-4">
