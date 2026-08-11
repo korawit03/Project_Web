@@ -40,7 +40,7 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
-  const { customers, findOrCreateCustomer } = useCustomers();
+  const { customers, findOrCreateCustomer, loadCustomers } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -128,6 +128,10 @@ export default function App() {
   };
 
   const handleDeleteProject = async (projectId) => {
+    // หา customer_id ของโครงการนี้ไว้ก่อน เผื่อต้องเช็คว่าเหลือโครงการอื่นไหมหลังลบ
+    const projectToDelete = projects.find((p) => p.id === projectId);
+    const customerId = projectToDelete?.customerId;
+
     const { error } = await supabase.from("projects").delete().eq("id", projectId);
 
     if (error) {
@@ -137,6 +141,26 @@ export default function App() {
     }
 
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
+
+    // ถ้าลูกค้าคนนี้ไม่มีโครงการอื่นเหลืออยู่แล้ว ให้ลบข้อมูลลูกค้าออกจาก customers ด้วย
+    if (customerId) {
+      const hasOtherProjects = projects.some(
+        (p) => p.id !== projectId && p.customerId === customerId
+      );
+      if (!hasOtherProjects) {
+        const { error: customerDeleteError } = await supabase
+          .from("customers")
+          .delete()
+          .eq("id", customerId);
+
+        if (customerDeleteError) {
+          console.error("Delete customer failed:", customerDeleteError);
+          // ไม่ต้อง alert ซ้ำ เพราะโครงการถูกลบสำเร็จแล้ว แค่ customer เหลือค้างไว้เฉยๆ
+        } else {
+          loadCustomers(); // รีเฟรช dropdown/datalist ชื่อลูกค้าในฟอร์ม
+        }
+      }
+    }
   };
 
   return (

@@ -29,8 +29,26 @@ export function useCustomers() {
     async (name, phone = "") => {
       const trimmedName = name.trim();
 
-      const existing = customers.find((c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase());
-      if (existing) return existing;
+      // เช็คกับ DB จริงเสมอ (ไม่เชื่อ local state เฉยๆ) กันปัญหา id เก่าที่ถูกลบไปแล้วแต่ cache ยังค้างอยู่
+      const { data: dbMatch, error: dbMatchError } = await supabase
+        .from("customers")
+        .select("*")
+        .ilike("name", trimmedName)
+        .maybeSingle();
+
+      if (dbMatchError) {
+        console.error("Check existing customer failed:", dbMatchError);
+        throw dbMatchError;
+      }
+
+      if (dbMatch) {
+        // sync local state ให้ตรงกับ DB (อัปเดต/เพิ่มเข้าไปถ้ายังไม่มี)
+        setCustomers((prev) => {
+          const withoutDup = prev.filter((c) => c.id !== dbMatch.id);
+          return [...withoutDup, dbMatch].sort((a, b) => a.name.localeCompare(b.name, "th"));
+        });
+        return dbMatch;
+      }
 
       const { data, error } = await supabase
         .from("customers")
@@ -46,7 +64,7 @@ export function useCustomers() {
       setCustomers((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, "th")));
       return data;
     },
-    [customers]
+    []
   );
 
   return { customers, loading, loadCustomers, findOrCreateCustomer };
