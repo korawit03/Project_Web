@@ -150,8 +150,9 @@ export default function WorkItemCard({
           label="รูปถ่ายหน้างาน / ขนาดชิ้นงาน"
           hint="กดปุ่มด้านล่างเพื่อเลือกรูปภาพจากคลัง หรือเปิดกล้องมือถือถ่ายเพื่อรายงานหน้างาน"
           photos={item.workPhotos}
-          onAdd={(list) => set({ workPhotos: [...item.workPhotos, ...list] })}
+          onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
           onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
+          onReorder={(next) => set({ workPhotos: next })}
         />
 
         <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: errors.positionNote ? COLORS.red : COLORS.border }}>
@@ -168,8 +169,9 @@ export default function WorkItemCard({
           <PhotoDropzone
             label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง (เลือกได้หลายรูป)"
             photos={item.positionPhotos}
-            onAdd={(list) => set({ positionPhotos: [...item.positionPhotos, ...list] })}
+            onAdd={(list) => set({ positionPhotos: [...list, ...item.positionPhotos] })}
             onRemove={(id) => set({ positionPhotos: item.positionPhotos.filter((p) => p.id !== id) })}
+            onReorder={(next) => set({ positionPhotos: next })}
           />
         </div>
 
