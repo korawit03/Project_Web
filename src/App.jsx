@@ -73,8 +73,7 @@ export default function App() {
     // หาลูกค้าเดิมจากชื่อที่แก้ไข หรือสร้างลูกค้าใหม่ถ้าเปลี่ยนเป็นชื่อที่ยังไม่เคยมี
     let customer;
     try {
-      customer = await findOrCreateCustomer(updatedProject.customerName);
-    } catch (err) {
+customer = await findOrCreateCustomer(updatedProject.customerName, updatedProject.customerPhone);    } catch (err) {
       console.error("Resolve customer failed:", err);
       alert("บันทึกข้อมูลลูกค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       return false;

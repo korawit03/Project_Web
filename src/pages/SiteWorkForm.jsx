@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Wrench, Plus, MapPin, Layers, Save, AlertCircle } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
@@ -8,6 +7,7 @@ import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.j
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { uploadPhotos } from "../lib/storage.js";
+import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone } from "lucide-react";
 
 let itemCounter = 1;
 function newWorkItem() {
@@ -31,6 +31,7 @@ export default function SiteWorkForm({
   findOrCreateCustomer,
 }) {
   const [projectName, setProjectName] = useState("");
+  const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
@@ -72,7 +73,7 @@ export default function SiteWorkForm({
 
     try {
       // หาลูกค้าเดิมจากชื่อที่พิมพ์ หรือสร้างลูกค้าใหม่อัตโนมัติถ้ายังไม่เคยมีในระบบ
-      const customer = await findOrCreateCustomer(projectName);
+      const customer = await findOrCreateCustomer(projectName, phone);
 
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
@@ -88,21 +89,21 @@ export default function SiteWorkForm({
       if (projectError) throw projectError;
 
       const workItemsPayload = await Promise.all(
-  items.map(async (item, idx) => {
-    const positionPhotos = await uploadPhotos(item.positionPhotos, "position");
-    const workPhotos = await uploadPhotos(item.workPhotos, "work");
-    return {
-      project_id: projectRow.id,
-      main_work: item.mainWork,
-      answers: item.answers,
-      position_note: item.positionNote,
-      note: item.note,
-      sort_order: idx,
-      position_photos: positionPhotos,
-      work_photos: workPhotos,
-    };
-  })
-);
+        items.map(async (item, idx) => {
+          const positionPhotos = await uploadPhotos(item.positionPhotos, "position");
+          const workPhotos = await uploadPhotos(item.workPhotos, "work");
+          return {
+            project_id: projectRow.id,
+            main_work: item.mainWork,
+            answers: item.answers,
+            position_note: item.positionNote,
+            note: item.note,
+            sort_order: idx,
+            position_photos: positionPhotos,
+            work_photos: workPhotos,
+          };
+        })
+      );
 
       const { error: itemsError } = await supabase.from("work_items").insert(workItemsPayload);
 
@@ -111,6 +112,7 @@ export default function SiteWorkForm({
       onSaved();
 
       setProjectName("");
+      setPhone("");
       setLocation("");
       setLatitude(null);
       setLongitude(null);
@@ -176,6 +178,15 @@ export default function SiteWorkForm({
             ))}
           </datalist>
           {errors.projectName && <ErrorText>กรุณากรอกชื่อโครงการ / ข้อมูลลูกค้า</ErrorText>}
+          <div className="mt-3">
+            <FieldLabel icon={Phone}>เบอร์โทรลูกค้า</FieldLabel>
+            <TextInput
+              type="tel"
+              placeholder=""
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
         </div>
         <div>
           <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>

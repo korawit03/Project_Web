@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Users, MapPin, Layers, Clock, ClipboardList, Pencil, X, Save, AlertCircle, Plus, Trash2, History, ExternalLink } from "lucide-react";
+import { Users, MapPin, Layers, Clock, ClipboardList, Pencil, X, Save, AlertCircle, Plus, Trash2, History, ExternalLink, Phone } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
@@ -22,6 +22,7 @@ function newWorkItem() {
 function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }) {
   const [editing, setEditing] = useState(false);
   const [customerName, setCustomerName] = useState(project.customerName);
+  const [phone, setPhone] = useState(project.customerPhone || "");
   const [location, setLocation] = useState(project.location);
   const [latitude, setLatitude] = useState(project.latitude ?? null);
   const [longitude, setLongitude] = useState(project.longitude ?? null);
@@ -31,6 +32,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
 
   const startEdit = () => {
     setCustomerName(project.customerName);
+    setPhone(project.customerPhone || "");
     setLocation(project.location);
     setLatitude(project.latitude ?? null);
     setLongitude(project.longitude ?? null);
@@ -56,6 +58,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
     const success = await onUpdate({
       ...project,
       customerName: customerName.trim(),
+      customerPhone: phone.trim(),
       location: location.trim(),
       latitude,
       longitude,
@@ -100,6 +103,12 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
             )}
             <span className="flex items-center gap-1">
               <Clock size={12} />
+              {project.customerPhone && (
+                <span className="flex items-center gap-1">
+                  <Phone size={12} />
+                  {project.customerPhone}
+                </span>
+              )}
               บันทึกเมื่อ {new Date(project.savedAt).toLocaleString("th-TH")}
             </span>
             {wasEdited && (
@@ -171,6 +180,10 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
           <FieldLabel required>ชื่อโครงการ / ข้อมูลลูกค้า</FieldLabel>
           <TextInput value={customerName} onChange={(e) => setCustomerName(e.target.value)} error={errors.projectName} />
           {errors.projectName && <ErrorText>กรุณากรอกชื่อโครงการ / ข้อมูลลูกค้า</ErrorText>}
+          <div className="mt-3">
+            <FieldLabel icon={Phone}>เบอร์โทรลูกค้า</FieldLabel>
+            <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
         </div>
         <div>
           <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
