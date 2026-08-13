@@ -7,6 +7,7 @@ import LocationPicker from "../components/LocationPicker.jsx";
 import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
+import { uploadPhotos } from "../lib/storage.js";
 
 let itemCounter = 1;
 function newWorkItem() {
@@ -86,20 +87,26 @@ export default function SiteWorkForm({
 
       if (projectError) throw projectError;
 
-      const workItemsPayload = items.map((item, idx) => ({
-        project_id: projectRow.id,
-        main_work: item.mainWork,
-        answers: item.answers,
-        position_note: item.positionNote,
-        note: item.note,
-        sort_order: idx,
-      }));
+      const workItemsPayload = await Promise.all(
+  items.map(async (item, idx) => {
+    const positionPhotos = await uploadPhotos(item.positionPhotos, "position");
+    const workPhotos = await uploadPhotos(item.workPhotos, "work");
+    return {
+      project_id: projectRow.id,
+      main_work: item.mainWork,
+      answers: item.answers,
+      position_note: item.positionNote,
+      note: item.note,
+      sort_order: idx,
+      position_photos: positionPhotos,
+      work_photos: workPhotos,
+    };
+  })
+);
 
       const { error: itemsError } = await supabase.from("work_items").insert(workItemsPayload);
 
       if (itemsError) throw itemsError;
-
-      // TODO (step 4): อัปโหลด positionPhotos/workPhotos ขึ้น Supabase Storage
 
       onSaved();
 

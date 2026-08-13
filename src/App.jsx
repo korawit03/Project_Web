@@ -8,6 +8,8 @@ import { COLORS } from "./lib/tokens.js";
 import { supabase } from "./lib/supabase.js";
 import { useWorkCatalog } from "./lib/useWorkCatalog.js";
 import { useCustomers } from "./lib/useCustomers.js";
+import { uploadPhotos } from "./lib/storage.js";
+import { deletePhotos } from "./lib/storage.js";
 
 function mapProjectFromDb(row) {
   return {
@@ -29,8 +31,8 @@ function mapProjectFromDb(row) {
         answers: it.answers || {},
         positionNote: it.position_note || "",
         note: it.note || "",
-        positionPhotos: [],
-        workPhotos: [],
+        positionPhotos: (it.position_photos || []).map((p) => ({ id: p.path, ...p })),
+        workPhotos: (it.work_photos || []).map((p) => ({ id: p.path, ...p })),
       })),
   };
 }
@@ -106,14 +108,22 @@ export default function App() {
       return false;
     }
 
-    const workItemsPayload = updatedProject.items.map((item, idx) => ({
-      project_id: projectId,
-      main_work: item.mainWork,
-      answers: item.answers,
-      position_note: item.positionNote,
-      note: item.note,
-      sort_order: idx,
-    }));
+    const workItemsPayload = await Promise.all(
+      updatedProject.items.map(async (item, idx) => {
+        const positionPhotos = await uploadPhotos(item.positionPhotos, "position");
+        const workPhotos = await uploadPhotos(item.workPhotos, "work");
+        return {
+          project_id: projectId,
+          main_work: item.mainWork,
+          answers: item.answers,
+          position_note: item.positionNote,
+          note: item.note,
+          sort_order: idx,
+          position_photos: positionPhotos,
+          work_photos: workPhotos,
+        };
+      })
+    );
 
     const { error: insertError } = await supabase.from("work_items").insert(workItemsPayload);
 
@@ -128,10 +138,19 @@ export default function App() {
   };
 
   const handleDeleteProject = async (projectId) => {
-    // หา customer_id ของโครงการนี้ไว้ก่อน เผื่อต้องเช็คว่าเหลือโครงการอื่นไหมหลังลบ
-    const projectToDelete = projects.find((p) => p.id === projectId);
-    const customerId = projectToDelete?.customerId;
+  const projectToDelete = projects.find((p) => p.id === projectId);
+  const customerId = projectToDelete?.customerId;
 
+  // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
+  if (projectToDelete) {
+    const allPhotos = projectToDelete.items.flatMap((it) => [
+      ...(it.positionPhotos || []),
+      ...(it.workPhotos || []),
+    ]);
+    if (allPhotos.length > 0) {
+      await deletePhotos(allPhotos);
+    }
+  }
     const { error } = await supabase.from("projects").delete().eq("id", projectId);
 
     if (error) {
@@ -148,16 +167,19 @@ export default function App() {
         (p) => p.id !== projectId && p.customerId === customerId
       );
       if (!hasOtherProjects) {
-        const { error: customerDeleteError } = await supabase
+        const { data: deletedCustomer, error: customerDeleteError } = await supabase
           .from("customers")
           .delete()
-          .eq("id", customerId);
+          .eq("id", customerId)
+          .select();
 
         if (customerDeleteError) {
           console.error("Delete customer failed:", customerDeleteError);
-          // ไม่ต้อง alert ซ้ำ เพราะโครงการถูกลบสำเร็จแล้ว แค่ customer เหลือค้างไว้เฉยๆ
+        } else if (!deletedCustomer || deletedCustomer.length === 0) {
+          // ลบไม่สำเร็จแบบเงียบ ๆ (0 แถวถูกลบ) มักเกิดจาก RLS policy บนตาราง customers ไม่อนุญาตให้ DELETE
+          console.warn("Customer delete affected 0 rows — check RLS policy on 'customers' table");
         } else {
-          loadCustomers(); // รีเฟรช dropdown/datalist ชื่อลูกค้าในฟอร์ม
+          loadCustomers();
         }
       }
     }
