@@ -42,24 +42,24 @@ export function useCustomers() {
       }
 
       if (dbMatch) {
-  // ถ้าเบอร์โทรที่กรอกใหม่ต่างจากเดิม ให้อัปเดต
-  if (phone.trim() && phone.trim() !== dbMatch.phone) {
-    const { data: updated, error: updateError } = await supabase
-      .from("customers")
-      .update({ phone: phone.trim() })
-      .eq("id", dbMatch.id)
-      .select()
-      .single();
-    if (!updateError && updated) {
-      setCustomers((prev) => {
-        const withoutDup = prev.filter((c) => c.id !== updated.id);
-        return [...withoutDup, updated].sort((a, b) => a.name.localeCompare(b.name, "th"));
-      });
-      return updated;
-    }
-  }
-  // ...โค้ดเดิม
-}
+        // ถ้าเบอร์โทรที่กรอกใหม่ต่างจากเดิม ให้อัปเดต
+        if (phone.trim() && phone.trim() !== dbMatch.phone) {
+          const { data: updated, error: updateError } = await supabase
+            .from("customers")
+            .update({ phone: phone.trim() })
+            .eq("id", dbMatch.id)
+            .select()
+            .single();
+          if (!updateError && updated) {
+            setCustomers((prev) => {
+              const withoutDup = prev.filter((c) => c.id !== updated.id);
+              return [...withoutDup, updated].sort((a, b) => a.name.localeCompare(b.name, "th"));
+            });
+            return updated;
+          }
+        }
+        return dbMatch;
+      }
 
       const { data, error } = await supabase
         .from("customers")
