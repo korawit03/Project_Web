@@ -206,7 +206,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
           <Layers size={15} style={{ color: COLORS.amber }} />
           ชิ้นงาน
         </div>
-        {/* <button
+        <button
           type="button"
           onClick={addItem}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
@@ -214,7 +214,7 @@ function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }
         >
           <Plus size={13} />
           เพิ่มชิ้นงาน
-        </button> */}
+        </button>
       </div>
 
       <div className="space-y-4">

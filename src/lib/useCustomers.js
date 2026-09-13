@@ -25,11 +25,11 @@ export function useCustomers() {
 
   // หาลูกค้าเดิมจากชื่อ (เทียบแบบตัดช่องว่าง + ไม่สนตัวพิมพ์เล็ก/ใหญ่)
   // ถ้ายังไม่เคยมีชื่อนี้ในระบบ จะสร้างลูกค้าใหม่ให้อัตโนมัติ
+  // ใช้ตอนกรอกฟอร์มสร้างชิ้นงาน (SiteWorkForm) เท่านั้น
   const findOrCreateCustomer = useCallback(
     async (name, phone = "") => {
       const trimmedName = name.trim();
 
-      // เช็คกับ DB จริงเสมอ (ไม่เชื่อ local state เฉยๆ) กันปัญหา id เก่าที่ถูกลบไปแล้วแต่ cache ยังค้างอยู่
       const { data: dbMatch, error: dbMatchError } = await supabase
         .from("customers")
         .select("*")
@@ -42,7 +42,6 @@ export function useCustomers() {
       }
 
       if (dbMatch) {
-        // ถ้าเบอร์โทรที่กรอกใหม่ต่างจากเดิม ให้อัปเดต
         if (phone.trim() && phone.trim() !== dbMatch.phone) {
           const { data: updated, error: updateError } = await supabase
             .from("customers")
@@ -78,5 +77,29 @@ export function useCustomers() {
     []
   );
 
-  return { customers, loading, loadCustomers, findOrCreateCustomer };
+  // สร้างลูกค้าใหม่แบบตรงๆ (ไม่เช็คชื่อซ้ำ) — ใช้ตอนกรอกฟอร์ม "เพิ่มลูกค้าใหม่" โดยเฉพาะ
+  // รับ location/latitude/longitude เพิ่ม เพราะหน้านี้ให้ปักหมุด GPS ของลูกค้าได้ตรงๆ
+  const createCustomer = useCallback(async ({ name, phone, location, latitude, longitude }) => {
+    const { data, error } = await supabase
+      .from("customers")
+      .insert({
+        name: name.trim(),
+        phone: phone?.trim() || null,
+        location: location?.trim() || null,
+        latitude: latitude ?? null,
+        longitude: longitude ?? null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Create customer failed:", error);
+      throw error;
+    }
+
+    setCustomers((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, "th")));
+    return data;
+  }, []);
+
+  return { customers, loading, loadCustomers, findOrCreateCustomer, createCustomer };
 }

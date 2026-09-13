@@ -6,7 +6,7 @@ import LocationPicker from "../components/LocationPicker.jsx";
 import { validateForm, hasErrors, buildErrorMessages } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
-import { uploadPhotos } from "../lib/storage.js";
+import { saveAllWorkItems } from "../lib/jobItems.js";
 import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone } from "lucide-react";
 
 let itemCounter = 1;
@@ -78,7 +78,7 @@ export default function SiteWorkForm({
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({
-          customer_id: customer.id,
+          customer_id: customer.customer_id,
           location: location.trim(),
           latitude,
           longitude,
@@ -88,26 +88,7 @@ export default function SiteWorkForm({
 
       if (projectError) throw projectError;
 
-      const workItemsPayload = await Promise.all(
-        items.map(async (item, idx) => {
-          const positionPhotos = await uploadPhotos(item.positionPhotos, "position");
-          const workPhotos = await uploadPhotos(item.workPhotos, "work");
-          return {
-            project_id: projectRow.id,
-            main_work: item.mainWork,
-            answers: item.answers,
-            position_note: item.positionNote,
-            note: item.note,
-            sort_order: idx,
-            position_photos: positionPhotos,
-            work_photos: workPhotos,
-          };
-        })
-      );
-
-      const { error: itemsError } = await supabase.from("work_items").insert(workItemsPayload);
-
-      if (itemsError) throw itemsError;
+      await saveAllWorkItems(items, projectRow.project_id, workCatalog);
 
       onSaved();
 
@@ -174,7 +155,7 @@ export default function SiteWorkForm({
           {/* พิมพ์ชื่อลูกค้าเดิมจะมีตัวช่วยเดา ป้องกันพิมพ์ชื่อเพี้ยนแล้วระบบมองเป็นลูกค้าคนละคน */}
           <datalist id="customer-suggestions">
             {customers.map((c) => (
-              <option key={c.id} value={c.name} />
+              <option key={c.customer_id} value={c.name} />
             ))}
           </datalist>
           {errors.projectName && <ErrorText>กรุณากรอกชื่อโครงการ / ข้อมูลลูกค้า</ErrorText>}

@@ -4,35 +4,51 @@ import MobileTopBar from "./components/MobileTopBar.jsx";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
 import SiteWorkForm from "./pages/SiteWorkForm.jsx";
 import CustomerListPage from "./pages/CustomerListPage.jsx";
+import CustomerCreatePage from "./pages/CustomerCreatePage.jsx";
 import { COLORS } from "./lib/tokens.js";
 import { supabase } from "./lib/supabase.js";
 import { useWorkCatalog } from "./lib/useWorkCatalog.js";
 import { useCustomers } from "./lib/useCustomers.js";
-import { uploadPhotos } from "./lib/storage.js";
+import { saveAllWorkItems } from "./lib/jobItems.js";
 import { deletePhotos } from "./lib/storage.js";
+
+// แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
+// แยกตาม photo_type ('work' / 'position') แล้วเรียงตาม sort_order
+function mapPhotos(sitePhotos, photoType) {
+  return (sitePhotos || [])
+    .filter((p) => p.photo_type === photoType)
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((p) => ({
+      id: p.storage_path || `photo-${p.photo_id}`,
+      url: p.image_url,
+      path: p.storage_path,
+      name: p.storage_path,
+    }));
+}
 
 function mapProjectFromDb(row) {
   return {
-    id: row.id,
+    id: row.project_id,
     customerId: row.customer_id,
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
     customerPhone: row.customer?.phone || "",
     location: row.location,
     latitude: row.latitude,
     longitude: row.longitude,
-    savedAt: row.saved_at,
+    savedAt: row.created_date,
     updatedAt: row.updated_at,
-    items: (row.work_items || [])
+    items: (row.job_items || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((it) => ({
-        id: it.id,
-        mainWork: it.main_work,
-        answers: it.answers || {},
+        id: it.item_id,
+        mainWork: it.sub_type,
+        answers: it.details || {},
         positionNote: it.position_note || "",
         note: it.note || "",
-        positionPhotos: (it.position_photos || []).map((p) => ({ id: p.path, ...p })),
-        workPhotos: (it.work_photos || []).map((p) => ({ id: p.path, ...p })),
+        positionPhotos: mapPhotos(it.site_photos, "position"),
+        workPhotos: mapPhotos(it.site_photos, "work"),
       })),
   };
 }
@@ -42,14 +58,14 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
-  const { customers, findOrCreateCustomer, loadCustomers } = useCustomers();
+  const { customers, findOrCreateCustomer, createCustomer, loadCustomers } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("projects")
-      .select("*, customer:customers(*), work_items(*)")
-      .order("saved_at", { ascending: false });
+      .select("*, customer:customers(*), job_items(*, site_photos(*))")
+      .order("created_date", { ascending: false });
 
     if (error) {
       console.error("Load projects failed:", error);
@@ -73,7 +89,8 @@ export default function App() {
     // หาลูกค้าเดิมจากชื่อที่แก้ไข หรือสร้างลูกค้าใหม่ถ้าเปลี่ยนเป็นชื่อที่ยังไม่เคยมี
     let customer;
     try {
-customer = await findOrCreateCustomer(updatedProject.customerName, updatedProject.customerPhone);    } catch (err) {
+      customer = await findOrCreateCustomer(updatedProject.customerName, updatedProject.customerPhone);
+    } catch (err) {
       console.error("Resolve customer failed:", err);
       alert("บันทึกข้อมูลลูกค้าไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       return false;
@@ -82,13 +99,12 @@ customer = await findOrCreateCustomer(updatedProject.customerName, updatedProjec
     const { error: projectError } = await supabase
       .from("projects")
       .update({
-        customer_id: customer.id,
+        customer_id: customer.customer_id,
         location: updatedProject.location,
         latitude: updatedProject.latitude,
         longitude: updatedProject.longitude,
-        updated_at: new Date().toISOString(),
       })
-      .eq("id", projectId);
+      .eq("project_id", projectId);
 
     if (projectError) {
       console.error("Update project failed:", projectError);
@@ -96,38 +112,23 @@ customer = await findOrCreateCustomer(updatedProject.customerName, updatedProjec
       return false;
     }
 
+    // ลบชิ้นงานเดิมทั้งหมดของโปรเจกต์นี้ (site_photos ที่ผูกอยู่จะถูกลบตามไปด้วยอัตโนมัติ
+    // เพราะตั้ง FK เป็น ON DELETE CASCADE ไว้แล้ว ไม่ต้องลบเองแยกต่างหาก)
     const { error: deleteError } = await supabase
-      .from("work_items")
+      .from("job_items")
       .delete()
       .eq("project_id", projectId);
 
     if (deleteError) {
-      console.error("Delete old work_items failed:", deleteError);
+      console.error("Delete old job_items failed:", deleteError);
       alert("อัปเดตข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       return false;
     }
 
-    const workItemsPayload = await Promise.all(
-      updatedProject.items.map(async (item, idx) => {
-        const positionPhotos = await uploadPhotos(item.positionPhotos, "position");
-        const workPhotos = await uploadPhotos(item.workPhotos, "work");
-        return {
-          project_id: projectId,
-          main_work: item.mainWork,
-          answers: item.answers,
-          position_note: item.positionNote,
-          note: item.note,
-          sort_order: idx,
-          position_photos: positionPhotos,
-          work_photos: workPhotos,
-        };
-      })
-    );
-
-    const { error: insertError } = await supabase.from("work_items").insert(workItemsPayload);
-
-    if (insertError) {
-      console.error("Insert updated work_items failed:", insertError);
+    try {
+      await saveAllWorkItems(updatedProject.items, projectId, workCatalog);
+    } catch (err) {
+      console.error("Insert updated job_items failed:", err);
       alert("อัปเดตข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       return false;
     }
@@ -137,20 +138,21 @@ customer = await findOrCreateCustomer(updatedProject.customerName, updatedProjec
   };
 
   const handleDeleteProject = async (projectId) => {
-  const projectToDelete = projects.find((p) => p.id === projectId);
-  const customerId = projectToDelete?.customerId;
+    const projectToDelete = projects.find((p) => p.id === projectId);
+    const customerId = projectToDelete?.customerId;
 
-  // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
-  if (projectToDelete) {
-    const allPhotos = projectToDelete.items.flatMap((it) => [
-      ...(it.positionPhotos || []),
-      ...(it.workPhotos || []),
-    ]);
-    if (allPhotos.length > 0) {
-      await deletePhotos(allPhotos);
+    // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
+    if (projectToDelete) {
+      const allPhotos = projectToDelete.items.flatMap((it) => [
+        ...(it.positionPhotos || []),
+        ...(it.workPhotos || []),
+      ]);
+      if (allPhotos.length > 0) {
+        await deletePhotos(allPhotos);
+      }
     }
-  }
-    const { error } = await supabase.from("projects").delete().eq("id", projectId);
+
+    const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
 
     if (error) {
       console.error("Delete project failed:", error);
@@ -169,7 +171,7 @@ customer = await findOrCreateCustomer(updatedProject.customerName, updatedProjec
         const { data: deletedCustomer, error: customerDeleteError } = await supabase
           .from("customers")
           .delete()
-          .eq("id", customerId)
+          .eq("customer_id", customerId)
           .select();
 
         if (customerDeleteError) {
@@ -201,6 +203,8 @@ customer = await findOrCreateCustomer(updatedProject.customerName, updatedProjec
               customers={customers}
               findOrCreateCustomer={findOrCreateCustomer}
             />
+          ) : activeView === "customer-new" ? (
+            <CustomerCreatePage createCustomer={createCustomer} />
           ) : (
             <CustomerListPage
               projects={projects}

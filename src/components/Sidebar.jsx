@@ -1,9 +1,10 @@
 import React from "react";
-import { Wrench, ClipboardList, Users } from "lucide-react";
+import { Wrench, ClipboardList, Users, UserPlus  } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 
 const MENU = [
   { key: "form", label: "โครงงาน", icon: ClipboardList },
+  { key: "customer-new", label: "เพิ่มลูกค้า", icon: UserPlus },
   { key: "customers", label: "ลูกค้า", icon: Users },
 ];
 
