@@ -10,7 +10,6 @@ import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
 import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X, UserPlus } from "lucide-react";
 
-const NEW_CUSTOMER_VALUE = "__new__";
 
 let itemCounter = 1;
 function newWorkItem() {
@@ -36,7 +35,7 @@ function CustomerSelect({ value, onChange, customers, error }) {
         style={{ borderColor: error ? COLORS.red : COLORS.border, color: value ? COLORS.charcoal : COLORS.textMuted }}
       >
         <option value="">-- เลือกลูกค้า --</option>
-        <option value={NEW_CUSTOMER_VALUE}>+ เพิ่มลูกค้าใหม่</option>
+
         {customers.map((c) => (
           <option key={c.customer_id} value={c.customer_id}>
             {c.name}
@@ -76,7 +75,6 @@ export default function SiteWorkForm({
   const [saveError, setSaveError] = useState("");
   const [showCreateNew, setShowCreateNew] = useState(false);
 
-  const isNewCustomerMode = selectedCustomerId === NEW_CUSTOMER_VALUE;
   const selectedCustomer = customers.find((c) => String(c.customer_id) === String(selectedCustomerId)) || null;
 
   // พอเลือกลูกค้าจาก dropdown เปลี่ยน -> เติมชื่อ/เบอร์ให้อัตโนมัติ (กรณีลูกค้าเดิม) หรือเคลียร์ให้กรอกใหม่ (กรณีลูกค้าใหม่)
@@ -84,11 +82,7 @@ export default function SiteWorkForm({
     const value = e.target.value;
     setSelectedCustomerId(value);
 
-    if (value === NEW_CUSTOMER_VALUE) {
-      setProjectName("");
-      setPhone("");
-      setShowCreateNew(true);
-    } else if (value === "") {
+    if (value === "") {
       setProjectName("");
       setPhone("");
       setShowCreateNew(false);
@@ -148,9 +142,13 @@ export default function SiteWorkForm({
     setSaving(true);
 
     try {
-      // ลูกค้าเดิม (เลือกจาก dropdown) ใช้ตรงๆ ไม่ต้องเช็คซ้ำ / ลูกค้าใหม่ค่อยสร้างผ่าน findOrCreateCustomer
-      const customer = selectedCustomer || (await findOrCreateCustomer(projectName, phone));
-
+      if (!selectedCustomer) {
+        setSaveError("กรุณาเลือกลูกค้าก่อนบันทึก");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        setSaving(false);
+        return;
+      }
+      const customer = selectedCustomer;
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({
@@ -188,7 +186,7 @@ export default function SiteWorkForm({
   };
 
   // แสดงฟอร์มสร้างชิ้นงานเมื่อ: ยังไม่ได้เลือกลูกค้าเลย, เลือก "ลูกค้าใหม่", หรือกด "สร้างโครงงานใหม่" ให้ลูกค้าเดิม
-  const showCreateForm = selectedCustomerId === "" || isNewCustomerMode || showCreateNew;
+  const showCreateForm = Boolean(selectedCustomer) && showCreateNew;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
@@ -230,24 +228,10 @@ export default function SiteWorkForm({
           customers={customers}
           error={errors.projectName && selectedCustomerId === ""}
         />
-        {errors.projectName && selectedCustomerId === "" && <ErrorText>กรุณาเลือกลูกค้า หรือเพิ่มลูกค้าใหม่</ErrorText>}
+        {errors.projectName && selectedCustomerId === "" && (
+          <ErrorText>กรุณาเลือกลูกค้าก่อน (หากยังไม่มีในระบบ ไปที่เมนู "เพิ่มลูกค้า" ก่อน)</ErrorText>
+        )}
       </div>
-
-      {isNewCustomerMode && (
-        <div className="mb-6 grid gap-4 sm:grid-cols-2 rounded-xl border p-4" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-          <div>
-            <FieldLabel icon={UserPlus} required>
-              ชื่อ-นามสกุลลูกค้าใหม่
-            </FieldLabel>
-            <TextInput placeholder="" value={projectName} onChange={(e) => setProjectName(e.target.value)} error={errors.projectName} />
-            {errors.projectName && <ErrorText>กรุณากรอกชื่อลูกค้าใหม่</ErrorText>}
-          </div>
-          <div>
-            <FieldLabel icon={Phone}>เบอร์โทรลูกค้า</FieldLabel>
-            <TextInput type="tel" placeholder="" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          </div>
-        </div>
-      )}
 
       {selectedCustomer && (
         <div className="mb-6 rounded-xl border overflow-hidden" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
