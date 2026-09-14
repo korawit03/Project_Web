@@ -13,6 +13,7 @@ import { saveAllWorkItems, updateItemStatus } from "./lib/jobItems.js";
 import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
 
+
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
 // แยกตาม photo_type ('work' / 'position') แล้วเรียงตาม sort_order
 function mapPhotos(sitePhotos, photoType) {
@@ -29,7 +30,7 @@ function mapPhotos(sitePhotos, photoType) {
 }
 
 function mapProjectFromDb(row) {
-  return {  
+  return {
     id: row.project_id,
     customerId: row.customer_id,
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
@@ -48,6 +49,7 @@ function mapProjectFromDb(row) {
         answers: it.details || {},
         positionNote: it.position_note || "",
         note: it.note || "",
+        status: it.status || DEFAULT_STATUS,
         positionPhotos: mapPhotos(it.site_photos, "position"),
         workPhotos: mapPhotos(it.site_photos, "work"),
       })),
@@ -185,6 +187,33 @@ export default function App() {
         }
       }
     }
+  };
+
+  const handleItemStatusChange = async (projectId, itemId, status) => {
+    // อัปเดตหน้าจอทันที (optimistic) แล้วค่อยยิงไป Supabase จริง
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id !== projectId
+          ? p
+          : { ...p, items: p.items.map((it) => (it.id === itemId ? { ...it, status } : it)) }
+      )
+    );
+    try {
+      await updateItemStatus(itemId, status);
+    } catch (err) {
+      console.error("Update item status failed:", err);
+      alert("อัปเดตสถานะไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      loadProjects();
+    }
+    <CustomerListPage
+      projects={projects}
+      loading={loading}
+      onUpdateProject={handleUpdateProject}
+      onDeleteProject={handleDeleteProject}
+      onItemStatusChange={handleItemStatusChange}
+      workCatalog={workCatalog}
+      categoryOrder={categoryOrder}
+    />
   };
 
   return (
