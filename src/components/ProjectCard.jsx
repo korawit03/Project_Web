@@ -16,6 +16,7 @@ import { FieldLabel, TextInput } from "./ui.jsx";
 import WorkItemCard from "./WorkItemCard.jsx";
 import LocationPicker from "./LocationPicker.jsx";
 import { validateForm, hasErrors } from "../lib/validation.js";
+import { DEFAULT_STATUS } from "../lib/status.js";
 
 let editItemCounter = 1;
 function newWorkItem() {
@@ -27,6 +28,7 @@ function newWorkItem() {
                   positionPhotos: [],
                   workPhotos: [],
                   note: "",
+                  status: DEFAULT_STATUS,
          };
 }
 

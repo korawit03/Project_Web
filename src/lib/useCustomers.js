@@ -100,6 +100,22 @@ export function useCustomers() {
     setCustomers((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name, "th")));
     return data;
   }, []);
+  // อัปเดตเบอร์โทรของลูกค้าตรงๆ ใช้ตอนแก้เบอร์โทรจากฟอร์มสร้าง/ดูโครงงาน
+  const updateCustomerPhone = useCallback(async (customerId, phone) => {
+    const { data, error } = await supabase
+      .from("customers")
+      .update({ phone: phone?.trim() || null })
+      .eq("customer_id", customerId)
+      .select()
+      .single();
 
+    if (error) {
+      console.error("Update customer phone failed:", error);
+      throw error;
+    }
+
+    setCustomers((prev) => prev.map((c) => (c.customer_id === customerId ? data : c)));
+    return data;
+  }, []);
   return { customers, loading, loadCustomers, findOrCreateCustomer, createCustomer };
 }

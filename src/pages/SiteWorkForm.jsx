@@ -58,6 +58,7 @@ export default function SiteWorkForm({
   catalogLoading,
   customers,
   findOrCreateCustomer,
+  updateCustomerPhone,
   projects,
   onUpdateProject,
   onDeleteProject,
@@ -151,6 +152,23 @@ export default function SiteWorkForm({
         return;
       }
       const customer = selectedCustomer;
+      const [savingPhone, setSavingPhone] = useState(false);
+      const [phoneSavedMsg, setPhoneSavedMsg] = useState("");
+
+      const handleSavePhone = async () => {
+        if (!selectedCustomer) return;
+        setSaveError("");
+        setSavingPhone(true);
+        try {
+          await updateCustomerPhone(selectedCustomer.customer_id, phone);
+          setPhoneSavedMsg("บันทึกเบอร์โทรเรียบร้อย");
+          setTimeout(() => setPhoneSavedMsg(""), 2500);
+        } catch (err) {
+          setSaveError("บันทึกเบอร์โทรไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+        } finally {
+          setSavingPhone(false);
+        }
+      };
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({

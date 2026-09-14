@@ -61,7 +61,7 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
-  const { customers, findOrCreateCustomer, createCustomer, loadCustomers } = useCustomers();
+  const { customers, findOrCreateCustomer, createCustomer,updateCustomerPhone, loadCustomers } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -232,6 +232,7 @@ export default function App() {
               catalogLoading={catalogLoading}
               customers={customers}
               findOrCreateCustomer={findOrCreateCustomer}
+              updateCustomerPhone={updateCustomerPhone}
               projects={projects}
               onUpdateProject={handleUpdateProject}
               onDeleteProject={handleDeleteProject}
