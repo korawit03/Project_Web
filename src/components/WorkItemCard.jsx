@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
-import { FieldLabel, TextInput, Select, ErrorText } from "./ui.jsx";
+import { FieldLabel, TextInput, Select, ErrorText, StatusSelect} from "./ui.jsx";
 import PhotoDropzone from "./PhotoDropzone.jsx";
+
 
 export default function WorkItemCard({
   item,
@@ -57,7 +58,7 @@ export default function WorkItemCard({
       className="rounded-xl border overflow-hidden"
       style={{ borderColor: hasCardError ? COLORS.red : COLORS.border, background: COLORS.surface }}
     >
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: COLORS.border, background: "#FAF8F3" }}>
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: COLORS.border, background: "#FAF8F3" }}>
         <div className="flex items-center gap-2">
           <span className="flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold text-white" style={{ background: COLORS.charcoal }}>
             {index + 1}
@@ -72,22 +73,25 @@ export default function WorkItemCard({
             </span>
           )}
         </div>
-        {removable && (
-          <button
-            type="button"
-            onClick={() => {
-              const confirmed = window.confirm(
-                `ต้องการลบชิ้นงานย่อยรายการที่ ${index + 1} นี้ใช่ไหม? หากลบแล้วต้องกรอกข้อมูลใหม่ทั้งหมด`
-              );
-              if (confirmed) onRemove();
-            }}
-            className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white"
-            style={{ background: COLORS.red }}
-          >
-            <Trash2 size={12} />
-            ลบข้อมูล
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          <StatusSelect value={item.status} onChange={(e) => set({ status: e.target.value })} />
+          {removable && (
+            <button
+              type="button"
+              onClick={() => {
+                const confirmed = window.confirm(
+                  `ต้องการลบชิ้นงานย่อยรายการที่ ${index + 1} นี้ใช่ไหม? หากลบแล้วต้องกรอกข้อมูลใหม่ทั้งหมด`
+                );
+                if (confirmed) onRemove();
+              }}
+              className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white"
+              style={{ background: COLORS.red }}
+            >
+              <Trash2 size={12} />
+              ลบข้อมูล
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-4 space-y-4">

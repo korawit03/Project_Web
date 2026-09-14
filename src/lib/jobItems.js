@@ -1,9 +1,7 @@
 import { supabase } from "./supabase.js";
 import { uploadPhotos } from "./storage.js";
+import { DEFAULT_STATUS } from "./status.js";
 
-// บันทึกชิ้นงานย่อย 1 รายการ: upload รูป + insert job_items + insert site_photos
-// ใช้ร่วมกันทั้งตอนสร้างโปรเจกต์ใหม่ (SiteWorkForm) และตอนแก้ไขโปรเจกต์เดิม (App/CustomerListPage)
-// คืนค่า job_items row ที่บันทึกสำเร็จ
 export async function saveWorkItem(item, sortOrder, projectId, workCatalog) {
   const category = workCatalog[item.mainWork]?.category || "";
 
@@ -19,6 +17,7 @@ export async function saveWorkItem(item, sortOrder, projectId, workCatalog) {
       position_note: item.positionNote,
       details: item.answers,
       note: item.note,
+      status: item.status || DEFAULT_STATUS,
       sort_order: sortOrder,
     })
     .select()
@@ -53,7 +52,13 @@ export async function saveWorkItem(item, sortOrder, projectId, workCatalog) {
   return jobItemRow;
 }
 
-// บันทึกชิ้นงานย่อยทั้งหมดของโปรเจกต์ (ใช้ตอนสร้างใหม่ หรือหลังลบของเก่าตอนแก้ไข)
 export async function saveAllWorkItems(items, projectId, workCatalog) {
   return Promise.all(items.map((item, idx) => saveWorkItem(item, idx, projectId, workCatalog)));
+}
+
+// อัปเดตสถานะของชิ้นงานเดียวแบบเร็ว ใช้ในหน้าสรุปสถานะ ไม่ต้อง submit ทั้งโปรเจค
+export async function updateItemStatus(itemId, status) {
+  const { error } = await supabase.from("job_items").update({ status }).eq("item_id", itemId);
+  if (error) throw error;
+  return true;
 }

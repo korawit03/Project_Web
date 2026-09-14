@@ -82,3 +82,37 @@ export function Select({ value, onChange, options, placeholder, error }) {
     </div>
   );
 }
+import { STATUS_OPTIONS, DEFAULT_STATUS, getStatusMeta } from "../lib/status.js";
+
+// ป้ายแสดงสถานะแบบอ่านอย่างเดียว (ใช้ในหน้าสรุป)
+export function StatusBadge({ status }) {
+  const meta = getStatusMeta(status);
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
+      style={{ color: meta.color, background: meta.bg }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: meta.color }} />
+      {meta.label}
+    </span>
+  );
+}
+
+// dropdown เปลี่ยนสถานะ (ใช้ทั้งในฟอร์มและหน้าสรุปสถานะ)
+export function StatusSelect({ value, onChange }) {
+  const meta = getStatusMeta(value);
+  return (
+    <select
+      value={value || DEFAULT_STATUS}
+      onChange={onChange}
+      className="rounded-full border px-2.5 py-1 text-xs font-medium outline-none"
+      style={{ borderColor: COLORS.border, color: meta.color, background: meta.bg }}
+    >
+      {STATUS_OPTIONS.map((s) => (
+        <option key={s.value} value={s.value}>
+          {s.label}
+        </option>
+      ))}
+    </select>
+  );
+}

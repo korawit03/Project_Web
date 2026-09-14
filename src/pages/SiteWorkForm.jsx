@@ -9,6 +9,7 @@ import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
 import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X, UserPlus } from "lucide-react";
+import { DEFAULT_STATUS } from "../lib/status.js";
 
 
 let itemCounter = 1;
@@ -21,6 +22,7 @@ function newWorkItem() {
     positionPhotos: [],
     workPhotos: [],
     note: "",
+    status: DEFAULT_STATUS,
   };
 }
 

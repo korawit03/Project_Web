@@ -9,7 +9,8 @@ import { COLORS } from "./lib/tokens.js";
 import { supabase } from "./lib/supabase.js";
 import { useWorkCatalog } from "./lib/useWorkCatalog.js";
 import { useCustomers } from "./lib/useCustomers.js";
-import { saveAllWorkItems } from "./lib/jobItems.js";
+import { saveAllWorkItems, updateItemStatus } from "./lib/jobItems.js";
+import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
@@ -28,7 +29,7 @@ function mapPhotos(sitePhotos, photoType) {
 }
 
 function mapProjectFromDb(row) {
-  return {
+  return {  
     id: row.project_id,
     customerId: row.customer_id,
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
