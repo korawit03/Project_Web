@@ -14,6 +14,31 @@ export function validateItem(item, workCatalog) {
 
   return errors;
 }
+// ค่าที่ขึ้นต้นด้วย "ไม่มี" (เช่น "ไม่มีกระจก") ถือว่าไม่ต้องเลือกช่องที่ขึ้นกับมัน
+export const isNoneValue = (v) => typeof v === "string" && v.trim().startsWith("ไม่มี");
+
+// ช่องที่มี dependsOn จะแสดงเมื่อช่องแม่ถูกเลือกแล้ว และไม่ใช่ "ไม่มี..."
+export function isFieldVisible(field, answers = {}) {
+  if (!field.dependsOn) return true;
+  const parent = answers[field.dependsOn];
+  return Boolean(parent) && !isNoneValue(parent);
+}
+
+export function validateItem(item, workCatalog) {
+  const errors = {};
+  if (!item.mainWork) errors.mainWork = true;
+  if (!item.positionNote || !item.positionNote.trim()) errors.positionNote = true;
+
+  if (item.mainWork && workCatalog[item.mainWork]) {
+    const answerErrors = {};
+    workCatalog[item.mainWork].fields.forEach((field) => {
+      if (!isFieldVisible(field, item.answers)) return; // ซ่อนอยู่ = ไม่ต้องบังคับ
+      if (!item.answers?.[field.key]) answerErrors[field.key] = true;
+    });
+    if (Object.keys(answerErrors).length > 0) errors.answers = answerErrors;
+  }
+  return errors;
+}
 
 export function validateForm(projectName, items, workCatalog) {
   const errors = { projectName: !projectName.trim(), items: {} };
@@ -38,7 +63,7 @@ export function buildErrorMessages(errors, items, workCatalog) {
     if (!err) return;
     const label = `ชิ้นงานย่อยรายการที่ ${idx + 1}`;
     if (err.mainWork) msgs.push(`${label}: ยังไม่ได้เลือกชิ้นงานหลัก`);
-    if (err.positionNote) msgs.push(`${label}: ยังไม่ได้ระบุตำแหน่งติดตั้ง`);
+    if (err.positionNote) msgs.push(`${label}: ยังไม่ได้ระบุรายละเอียดหน้างาน`);
     if (err.answers) {
       const catalogEntry = workCatalog[it.mainWork];
       Object.keys(err.answers).forEach((key) => {
@@ -47,6 +72,6 @@ export function buildErrorMessages(errors, items, workCatalog) {
       });
     }
   });
-
+  
   return msgs;
 }

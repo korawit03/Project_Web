@@ -32,7 +32,8 @@ function mapPhotos(sitePhotos, photoType) {
 function mapProjectFromDb(row) {
   return {
     id: row.project_id,
-    customerId: row.customer_id,
+    projectName: row.project_name || "",
+    customerId: row.customer_id,   
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
     customerPhone: row.customer?.phone || "",
     location: row.location,
@@ -40,11 +41,13 @@ function mapProjectFromDb(row) {
     longitude: row.longitude,
     savedAt: row.created_date,
     updatedAt: row.updated_at,
+
     items: (row.job_items || [])
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((it) => ({
         id: it.item_id,
+        itemName: it.item_name || "",
         mainWork: it.sub_type,
         answers: it.details || {},
         positionNote: it.position_note || "",

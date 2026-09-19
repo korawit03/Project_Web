@@ -8,7 +8,7 @@ import { validateForm, hasErrors } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
-import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X } from "lucide-react";
+import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X, Calendar } from "lucide-react";
 import { DEFAULT_STATUS } from "../lib/status.js";
 
 
@@ -18,6 +18,7 @@ function newWorkItem() {
     id: `item-${Date.now()}-${itemCounter++}`,
     mainWork: "",
     answers: {},
+    itemName: "",
     positionNote: "",
     positionPhotos: [],
     workPhotos: [],
@@ -77,6 +78,10 @@ export default function SiteWorkForm({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showCreateNew, setShowCreateNew] = useState(false);
+  const [projectDate, setProjectDate] = useState(todayStr());
+  const [projectTitle, setProjectTitle] = useState("");
+  const [projectTitleError, setProjectTitleError] = useState(false);
+
 
   // state + handler สำหรับปุ่ม "บันทึกเบอร์" — ต้องอยู่ระดับบนสุดของ component เท่านั้น (Rules of Hooks)
   const [savingPhone, setSavingPhone] = useState(false);
@@ -98,6 +103,11 @@ export default function SiteWorkForm({
     } finally {
       setSavingPhone(false);
     }
+  };
+  const todayStr = () => {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
   };
 
   // พอเลือกลูกค้าจาก dropdown เปลี่ยน -> เติมชื่อ/เบอร์ให้อัตโนมัติ (กรณีลูกค้าเดิม) หรือเคลียร์ให้กรอกใหม่ (กรณีลูกค้าใหม่)
@@ -154,8 +164,10 @@ export default function SiteWorkForm({
     setSaveError("");
     const nextErrors = validateForm(projectName, items, workCatalog);
     setErrors(nextErrors);
+    const titleMissing = !projectTitle.trim();
+    setProjectTitleError(titleMissing);
 
-    if (hasErrors(nextErrors)) {
+    if (hasErrors(nextErrors) || titleMissing) {
       setSavedMsg("");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -179,6 +191,8 @@ export default function SiteWorkForm({
         .from("projects")
         .insert({
           customer_id: customer.customer_id,
+          project_name: projectTitle.trim(),
+          created_date: new Date(`${projectDate}T${new Date().toTimeString().slice(0, 8)}`).toISOString(),
           location: location.trim(),
           latitude,
           longitude,
@@ -196,6 +210,9 @@ export default function SiteWorkForm({
       setLocation("");
       setLatitude(null);
       setLongitude(null);
+      setProjectTitle("");
+      setProjectDate(todayStr());
+      setProjectTitleError(false);
       setItems([newWorkItem()]);
       setSubmitted(false);
       setErrors({ projectName: false, items: {} });
@@ -363,6 +380,21 @@ export default function SiteWorkForm({
 
       {showCreateForm && (
         <>
+          <div className="mb-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <FieldLabel icon={Calendar} required>วันที่เพิ่มโครงงาน</FieldLabel>
+              <TextInput type="date" value={projectDate} onChange={(e) => setProjectDate(e.target.value)} />
+            </div>
+            <div>
+              <FieldLabel icon={Layers} required>ชื่อโครงงาน</FieldLabel>
+              <TextInput
+                value={projectTitle}
+                onChange={(e) => { setProjectTitle(e.target.value); setProjectTitleError(false); }}
+                error={projectTitleError}
+              />
+              {projectTitleError && <ErrorText>กรุณากรอกชื่อโครงงาน</ErrorText>}
+            </div>
+          </div>
           <div className="mb-6">
             <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
             <TextInput placeholder="" value={location} onChange={(e) => setLocation(e.target.value)} />

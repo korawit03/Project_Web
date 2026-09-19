@@ -22,6 +22,7 @@ let editItemCounter = 1;
 function newWorkItem() {
          return {
                   id: `edit-item-${Date.now()}-${editItemCounter++}`,
+                  itemName: "",
                   mainWork: "",
                   answers: {},
                   positionNote: "",
@@ -140,11 +141,21 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                       <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm font-medium" style={{ color: COLORS.charcoal }}>
                                                                <span className="flex items-center gap-1">
                                                                         <MapPin size={12} style={{ color: COLORS.textMuted }} />
+
                                                                         {project.location ? (
                                                                                  <>สถานที่หน้างาน: {project.location}</>
                                                                         ) : (
                                                                                  <span style={{ color: COLORS.textMuted }}>(ยังไม่ระบุสถานที่หน้างาน)</span>
                                                                         )}
+                                                                        {project.projectName && (
+                                                                                 <span className="block text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+                                                                                          {project.projectName}
+                                                                                 </span>
+                                                                        )}
+                                                                        <span className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
+                                                                                 <Calendar size={11} />
+                                                                                 เพิ่มโครงงานเมื่อ: {formatDate(project.savedAt)}
+                                                                        </span>
                                                                </span>
                                                                <span className="text-xs font-normal" style={{ color: COLORS.textMuted }}>
                                                                         ทั้งหมด {itemCount} ชิ้นงาน
@@ -233,7 +244,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                                                    rel="noreferrer"
                                                                                                    className="block h-12 w-12 overflow-hidden rounded-md border"
                                                                                                    style={{ borderColor: COLORS.border }}>
-                                                                                                   
+
                                                                                                    <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
                                                                                           </a>
                                                                                  ))}

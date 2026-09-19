@@ -19,6 +19,7 @@ export async function saveWorkItem(item, sortOrder, projectId, workCatalog) {
       note: item.note,
       status: item.status || DEFAULT_STATUS,
       sort_order: sortOrder,
+      item_name: item.itemName?.trim() || null,
     })
     .select()
     .single();
