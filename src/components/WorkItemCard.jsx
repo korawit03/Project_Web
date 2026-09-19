@@ -193,14 +193,22 @@ export default function WorkItemCard({
         </div>
 
         {/* รายละเอียดชิ้นงาน (เดิมคือ รูปถ่ายหน้างาน / ขนาดชิ้นงาน) */}
-        <PhotoDropzone
-          label="รายละเอียดชิ้นงาน"
-          hint="ถ่ายรูปหรือเลือกรูปจากคลังภาพ เพื่อแสดงรายละเอียดและขนาดของชิ้นงาน"
-          photos={item.workPhotos}
-          onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
-          onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
-          onReorder={(next) => set({ workPhotos: next })}
-        />
+        <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: COLORS.border }}>
+          <FieldLabel icon={Tag}>รายละเอียดชิ้นงาน</FieldLabel>
+          <TextInput
+            placeholder="เช่น ขนาด 80x200 ซม., สีขาวด้าน"
+            value={item.note || ""}
+            onChange={(e) => set({ note: e.target.value })}
+          />
+          <PhotoDropzone
+            label="รูปประกอบรายละเอียดชิ้นงาน"
+            hint="ถ่ายรูปหรือเลือกรูปจากคลังภาพ เพื่อแสดงรายละเอียดและขนาดของชิ้นงาน"
+            photos={item.workPhotos}
+            onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
+            onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
+            onReorder={(next) => set({ workPhotos: next })}
+          />
+        </div>
       </div>
     </div>
   );

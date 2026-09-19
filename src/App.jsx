@@ -208,15 +208,6 @@ export default function App() {
       alert("อัปเดตสถานะไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
       loadProjects();
     }
-    <CustomerListPage
-      projects={projects}
-      loading={loading}
-      onUpdateProject={handleUpdateProject}
-      onDeleteProject={handleDeleteProject}
-      onItemStatusChange={handleItemStatusChange}
-      workCatalog={workCatalog}
-      categoryOrder={categoryOrder}
-    />
   };
 
   return (

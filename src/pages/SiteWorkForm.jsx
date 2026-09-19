@@ -2,13 +2,12 @@ import React, { useState, useEffect } from "react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
-import LocationPicker from "../components/LocationPicker.jsx";
 import ProjectCard from "../components/ProjectCard.jsx";
 import { validateForm, hasErrors } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
-import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X, Calendar } from "lucide-react";
+import { Wrench, Plus, Layers, Save, AlertCircle, Phone, Users, X, Calendar } from "lucide-react";
 import { DEFAULT_STATUS } from "../lib/status.js";
 
 
@@ -68,9 +67,6 @@ export default function SiteWorkForm({
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [projectName, setProjectName] = useState("");
   const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
-  const [latitude, setLatitude] = useState(null);
-  const [longitude, setLongitude] = useState(null);
   const [items, setItems] = useState([newWorkItem()]);
   const [savedMsg, setSavedMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -104,11 +100,11 @@ export default function SiteWorkForm({
       setSavingPhone(false);
     }
   };
-  const todayStr = () => {
+  function todayStr() {
     const d = new Date();
     const p = (n) => String(n).padStart(2, "0");
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-  };
+  }
 
   // พอเลือกลูกค้าจาก dropdown เปลี่ยน -> เติมชื่อ/เบอร์ให้อัตโนมัติ (กรณีลูกค้าเดิม) หรือเคลียร์ให้กรอกใหม่ (กรณีลูกค้าใหม่)
   const handleCustomerChange = (e) => {
@@ -193,9 +189,6 @@ export default function SiteWorkForm({
           customer_id: customer.customer_id,
           project_name: projectTitle.trim(),
           created_date: new Date(`${projectDate}T${new Date().toTimeString().slice(0, 8)}`).toISOString(),
-          location: location.trim(),
-          latitude,
-          longitude,
         })
         .select()
         .single();
@@ -207,9 +200,6 @@ export default function SiteWorkForm({
       onSaved();
 
       resetCustomerSelection();
-      setLocation("");
-      setLatitude(null);
-      setLongitude(null);
       setProjectTitle("");
       setProjectDate(todayStr());
       setProjectTitleError(false);
@@ -395,21 +385,6 @@ export default function SiteWorkForm({
               {projectTitleError && <ErrorText>กรุณากรอกชื่อโครงงาน</ErrorText>}
             </div>
           </div>
-          <div className="mb-6">
-            <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
-            <TextInput placeholder="" value={location} onChange={(e) => setLocation(e.target.value)} />
-            <div className="mt-2">
-              <LocationPicker
-                latitude={latitude}
-                longitude={longitude}
-                onChange={({ latitude: lat, longitude: lng }) => {
-                  setLatitude(lat);
-                  setLongitude(lng);
-                }}
-              />
-            </div>
-          </div>
-
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: COLORS.charcoal }}>
               <Layers size={15} style={{ color: COLORS.amber }} />

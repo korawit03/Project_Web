@@ -1,19 +1,3 @@
-// ตรวจ 1 ชิ้นงานย่อย: ชิ้นงานหลัก, ตำแหน่งติดตั้ง, และทุก dropdown รายละเอียด/วัสดุ (ยกเว้นหมายเหตุ)
-export function validateItem(item, workCatalog) {
-  const errors = {};
-  if (!item.mainWork) errors.mainWork = true;
-  if (!item.positionNote || !item.positionNote.trim()) errors.positionNote = true;
-
-  if (item.mainWork && workCatalog[item.mainWork]) {
-    const answerErrors = {};
-    workCatalog[item.mainWork].fields.forEach((field) => {
-      if (!item.answers?.[field.key]) answerErrors[field.key] = true;
-    });
-    if (Object.keys(answerErrors).length > 0) errors.answers = answerErrors;
-  }
-
-  return errors;
-}
 // ค่าที่ขึ้นต้นด้วย "ไม่มี" (เช่น "ไม่มีกระจก") ถือว่าไม่ต้องเลือกช่องที่ขึ้นกับมัน
 export const isNoneValue = (v) => typeof v === "string" && v.trim().startsWith("ไม่มี");
 
