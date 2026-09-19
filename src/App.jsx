@@ -12,7 +12,7 @@ import { useCustomers } from "./lib/useCustomers.js";
 import { saveAllWorkItems, updateItemStatus } from "./lib/jobItems.js";
 import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
-
+import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
 // แยกตาม photo_type ('work' / 'position') แล้วเรียงตาม sort_order
@@ -61,7 +61,7 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
-  const { customers, findOrCreateCustomer, createCustomer,updateCustomerPhone, loadCustomers } = useCustomers();
+  const { customers, findOrCreateCustomer, createCustomer, updateCustomerPhone, updateCustomer,customersLoading, loadCustomers } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -224,32 +224,39 @@ export default function App() {
         <MobileTopBar />
 
         <main className="flex-1 min-w-0 pb-20 md:pb-0">
-          {activeView === "form" ? (
-            <SiteWorkForm
-              onSaved={handleSaved}
-              workCatalog={workCatalog}
-              categoryOrder={categoryOrder}
-              catalogLoading={catalogLoading}
-              customers={customers}
-              findOrCreateCustomer={findOrCreateCustomer}
-              updateCustomerPhone={updateCustomerPhone}
-              projects={projects}
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
-            />
-          ) : activeView === "customer-new" ? (
-            <CustomerCreatePage createCustomer={createCustomer} />
-          ) : (
-            <CustomerListPage
-              projects={projects}
-              loading={loading}
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
-              workCatalog={workCatalog}
-              categoryOrder={categoryOrder}
-            />
-          )}
-        </main>
+  {activeView === "form" ? (
+    <SiteWorkForm
+      onSaved={handleSaved}
+      workCatalog={workCatalog}
+      categoryOrder={categoryOrder}
+      catalogLoading={catalogLoading}
+      customers={customers}
+      findOrCreateCustomer={findOrCreateCustomer}
+      updateCustomerPhone={updateCustomerPhone}
+      projects={projects}
+      onUpdateProject={handleUpdateProject}
+      onDeleteProject={handleDeleteProject}
+    />
+  ) : activeView === "customer-list" ? (
+    <CustomerDetailPage
+      customers={customers}
+      loading={customersLoading}
+      updateCustomer={updateCustomer}
+      onCustomerUpdated={loadProjects}
+    />
+  ) : activeView === "customer-new" ? (
+    <CustomerCreatePage createCustomer={createCustomer} />
+  ) : (
+    <CustomerListPage
+      projects={projects}
+      loading={loading}
+      onUpdateProject={handleUpdateProject}
+      onDeleteProject={handleDeleteProject}
+      workCatalog={workCatalog}
+      categoryOrder={categoryOrder}
+    />
+  )}
+</main>
 
         <MobileBottomNav activeView={activeView} onNavigate={setActiveView} />
       </div>

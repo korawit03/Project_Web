@@ -2,48 +2,42 @@ import React, { useState } from "react";
 import { UserPlus, Phone, MapPin, Save, AlertCircle } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
-import LocationPicker from "../components/LocationPicker.jsx";
 import SuccessBurst from "../components/SuccessBurst.jsx";
+import LocationListEditor, { newLocationRow, validateLocationRows } from "../components/LocationListEditor.jsx";
 
 export default function CustomerCreatePage({ createCustomer }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [location, setLocation] = useState("");
-  const [latitude, setLatitude] = useState(null);
-  const [longitude, setLongitude] = useState(null);
+  const [locationRows, setLocationRows] = useState(() => [newLocationRow()]);
   const [errors, setErrors] = useState({ name: false, phone: false });
+  const [locationErrors, setLocationErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
 
-  const validate = () => {
-    const next = {
-      name: !name.trim(),
-      phone: !phone.trim(),
-    };
-    setErrors(next);
-    return !next.name && !next.phone;
-  };
-
   const resetForm = () => {
     setName("");
     setPhone("");
-    setLocation("");
-    setLatitude(null);
-    setLongitude(null);
+    setLocationRows([newLocationRow()]);
     setErrors({ name: false, phone: false });
+    setLocationErrors({});
   };
 
   const handleSave = async () => {
     setSaveError("");
-    if (!validate()) {
+    const next = { name: !name.trim(), phone: !phone.trim() };
+    const { cleaned, errorKeys, valid } = validateLocationRows(locationRows);
+    setErrors(next);
+    setLocationErrors(errorKeys);
+
+    if (next.name || next.phone || !valid) {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setSaving(true);
     try {
-      await createCustomer({ name, phone, location, latitude, longitude });
+      await createCustomer({ name, phone, locations: cleaned });
 
       resetForm();
       setSavedMsg("บันทึกข้อมูลลูกค้าใหม่เรียบร้อย");
@@ -83,7 +77,7 @@ export default function CustomerCreatePage({ createCustomer }) {
       <div className="space-y-4 rounded-xl border p-5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
         <div>
           <FieldLabel required>ชื่อ-นามสกุล</FieldLabel>
-          <TextInput placeholder="" value={name} onChange={(e) => setName(e.target.value)} error={errors.name} />
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} error={errors.name} />
           {errors.name && <ErrorText>กรุณากรอกชื่อ-นามสกุลลูกค้า</ErrorText>}
         </div>
 
@@ -91,24 +85,17 @@ export default function CustomerCreatePage({ createCustomer }) {
           <FieldLabel icon={Phone} required>
             เบอร์โทร
           </FieldLabel>
-          <TextInput type="tel" placeholder="" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} />
+          <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} />
           {errors.phone && <ErrorText>กรุณากรอกเบอร์โทรลูกค้า</ErrorText>}
         </div>
+      </div>
 
-        <div>
-          <FieldLabel icon={MapPin}>ตำแหน่งสถานที่ (ที่อยู่ / คำอธิบายสถานที่)</FieldLabel>
-          <TextInput placeholder="" value={location} onChange={(e) => setLocation(e.target.value)} />
-          <div className="mt-2">
-            <LocationPicker
-              latitude={latitude}
-              longitude={longitude}
-              onChange={({ latitude: lat, longitude: lng }) => {
-                setLatitude(lat);
-                setLongitude(lng);
-              }}
-            />
-          </div>
-        </div>
+      <div className="mt-4 rounded-xl border p-5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+        <p className="flex items-center gap-1.5 text-sm font-semibold mb-3" style={{ color: COLORS.charcoal }}>
+          <MapPin size={14} style={{ color: COLORS.amber }} />
+          สถานที่
+        </p>
+        <LocationListEditor rows={locationRows} onChange={setLocationRows} errorKeys={locationErrors} />
       </div>
 
       <div className="mt-6 flex justify-center">
