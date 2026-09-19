@@ -117,5 +117,5 @@ export function useCustomers() {
     setCustomers((prev) => prev.map((c) => (c.customer_id === customerId ? data : c)));
     return data;
   }, []);
-  return { customers, loading, loadCustomers, findOrCreateCustomer, createCustomer };
+  return { customers, loading, loadCustomers, findOrCreateCustomer,updateCustomerPhone, createCustomer };
 }

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Users, ChevronRight, ArrowLeft, MapPin, Phone } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { STATUS_OPTIONS, countByStatus } from "../lib/status.js";
-import { StatusSelect } from "../components/ui.jsx";
+import { StatusBadge } from "../components/ui.jsx";
 import ProjectCard from "../components/ProjectCard.jsx";
 
 // แถวชิปสรุปจำนวนชิ้นงานแยกตามสถานะ (โชว์เฉพาะสถานะที่มีจำนวน > 0)
@@ -146,10 +146,7 @@ export default function CustomerListPage({
                     </p>
                   )}
                 </div>
-                <StatusSelect
-                  value={item.status}
-                  onChange={(e) => onItemStatusChange(selectedProject.id, item.id, e.target.value)}
-                />
+                <StatusBadge status={item.status} />
               </div>
             ))}
           </div>

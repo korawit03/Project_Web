@@ -8,7 +8,7 @@ import { validateForm, hasErrors } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
-import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X, UserPlus } from "lucide-react";
+import { Wrench, Plus, MapPin, Layers, Save, AlertCircle, Phone, Users, X } from "lucide-react";
 import { DEFAULT_STATUS } from "../lib/status.js";
 
 
@@ -78,12 +78,33 @@ export default function SiteWorkForm({
   const [saveError, setSaveError] = useState("");
   const [showCreateNew, setShowCreateNew] = useState(false);
 
+  // state + handler สำหรับปุ่ม "บันทึกเบอร์" — ต้องอยู่ระดับบนสุดของ component เท่านั้น (Rules of Hooks)
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [phoneSavedMsg, setPhoneSavedMsg] = useState("");
+
   const selectedCustomer = customers.find((c) => String(c.customer_id) === String(selectedCustomerId)) || null;
+
+  const handleSavePhone = async () => {
+    if (!selectedCustomer) return;
+    setSaveError("");
+    setSavingPhone(true);
+    try {
+      await updateCustomerPhone(selectedCustomer.customer_id, phone);
+      setPhoneSavedMsg("บันทึกเบอร์โทรเรียบร้อย");
+      setTimeout(() => setPhoneSavedMsg(""), 2500);
+    } catch (err) {
+      console.error("Update customer phone failed:", err);
+      setSaveError("บันทึกเบอร์โทรไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setSavingPhone(false);
+    }
+  };
 
   // พอเลือกลูกค้าจาก dropdown เปลี่ยน -> เติมชื่อ/เบอร์ให้อัตโนมัติ (กรณีลูกค้าเดิม) หรือเคลียร์ให้กรอกใหม่ (กรณีลูกค้าใหม่)
   const handleCustomerChange = (e) => {
     const value = e.target.value;
     setSelectedCustomerId(value);
+    setPhoneSavedMsg("");
 
     if (value === "") {
       setProjectName("");
@@ -125,6 +146,7 @@ export default function SiteWorkForm({
     setProjectName("");
     setPhone("");
     setShowCreateNew(false);
+    setPhoneSavedMsg("");
   };
 
   const handleSave = async () => {
@@ -152,23 +174,7 @@ export default function SiteWorkForm({
         return;
       }
       const customer = selectedCustomer;
-      const [savingPhone, setSavingPhone] = useState(false);
-      const [phoneSavedMsg, setPhoneSavedMsg] = useState("");
 
-      const handleSavePhone = async () => {
-        if (!selectedCustomer) return;
-        setSaveError("");
-        setSavingPhone(true);
-        try {
-          await updateCustomerPhone(selectedCustomer.customer_id, phone);
-          setPhoneSavedMsg("บันทึกเบอร์โทรเรียบร้อย");
-          setTimeout(() => setPhoneSavedMsg(""), 2500);
-        } catch (err) {
-          setSaveError("บันทึกเบอร์โทรไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-        } finally {
-          setSavingPhone(false);
-        }
-      };
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({
@@ -207,6 +213,7 @@ export default function SiteWorkForm({
 
   // แสดงฟอร์มสร้างชิ้นงานเมื่อ: ยังไม่ได้เลือกลูกค้าเลย, เลือก "ลูกค้าใหม่", หรือกด "สร้างโครงงานใหม่" ให้ลูกค้าเดิม
   const showCreateForm = Boolean(selectedCustomer) && showCreateNew;
+  const phoneUnchanged = phone.trim() === (selectedCustomer?.phone || "").trim();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
@@ -282,7 +289,26 @@ export default function SiteWorkForm({
 
           <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
             <FieldLabel icon={Phone}>แก้ไขเบอร์โทรสำหรับโครงงานนี้ (ถ้าจำเป็น)</FieldLabel>
-            <TextInput type="tel" placeholder="" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <TextInput type="tel" placeholder="" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </div>
+              <button
+                type="button"
+                onClick={handleSavePhone}
+                disabled={savingPhone || !phone.trim() || phoneUnchanged}
+                className="shrink-0 flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+                style={{ background: COLORS.green }}
+              >
+                <Save size={14} />
+                {savingPhone ? "กำลังบันทึก..." : "บันทึกเบอร์"}
+              </button>
+            </div>
+            {phoneSavedMsg && (
+              <p className="mt-1.5 text-xs font-medium" style={{ color: COLORS.green }}>
+                {phoneSavedMsg}
+              </p>
+            )}
           </div>
 
           {customerProjects.length > 0 ? (
