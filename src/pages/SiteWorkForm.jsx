@@ -58,7 +58,6 @@ export default function SiteWorkForm({
   catalogLoading,
   customers,
   findOrCreateCustomer,
-  updateCustomerPhone,
   projects,
   onUpdateProject,
   onDeleteProject,
@@ -66,7 +65,6 @@ export default function SiteWorkForm({
   // selectedCustomerId เก็บค่า 3 แบบ: "" (ยังไม่เลือก), NEW_CUSTOMER_VALUE (ลูกค้าใหม่), หรือ customer_id จริง
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [projectName, setProjectName] = useState("");
-  const [phone, setPhone] = useState("");
   const [items, setItems] = useState([newWorkItem()]);
   const [savedMsg, setSavedMsg] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -78,28 +76,8 @@ export default function SiteWorkForm({
   const [projectTitle, setProjectTitle] = useState("");
   const [projectTitleError, setProjectTitleError] = useState(false);
 
-
-  // state + handler สำหรับปุ่ม "บันทึกเบอร์" — ต้องอยู่ระดับบนสุดของ component เท่านั้น (Rules of Hooks)
-  const [savingPhone, setSavingPhone] = useState(false);
-  const [phoneSavedMsg, setPhoneSavedMsg] = useState("");
-
   const selectedCustomer = customers.find((c) => String(c.customer_id) === String(selectedCustomerId)) || null;
 
-  const handleSavePhone = async () => {
-    if (!selectedCustomer) return;
-    setSaveError("");
-    setSavingPhone(true);
-    try {
-      await updateCustomerPhone(selectedCustomer.customer_id, phone);
-      setPhoneSavedMsg("บันทึกเบอร์โทรเรียบร้อย");
-      setTimeout(() => setPhoneSavedMsg(""), 2500);
-    } catch (err) {
-      console.error("Update customer phone failed:", err);
-      setSaveError("บันทึกเบอร์โทรไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-    } finally {
-      setSavingPhone(false);
-    }
-  };
   function todayStr() {
     const d = new Date();
     const p = (n) => String(n).padStart(2, "0");
@@ -110,18 +88,9 @@ export default function SiteWorkForm({
   const handleCustomerChange = (e) => {
     const value = e.target.value;
     setSelectedCustomerId(value);
-    setPhoneSavedMsg("");
-
-    if (value === "") {
-      setProjectName("");
-      setPhone("");
-      setShowCreateNew(false);
-    } else {
-      const c = customers.find((cust) => String(cust.customer_id) === String(value));
-      setProjectName(c?.name || "");
-      setPhone(c?.phone || "");
-      setShowCreateNew(false);
-    }
+    const c = customers.find((cust) => String(cust.customer_id) === String(value));
+    setProjectName(c?.name || "");
+    setShowCreateNew(false);
   };
 
   const customerProjects = selectedCustomer
@@ -148,12 +117,12 @@ export default function SiteWorkForm({
   const addItem = () => setItems((prev) => [...prev, newWorkItem()]);
 
   const resetCustomerSelection = () => {
-    setSelectedCustomerId("");
-    setProjectName("");
-    setPhone("");
-    setShowCreateNew(false);
-    setPhoneSavedMsg("");
-  };
+  setSelectedCustomerId("");
+  setProjectName("");
+  setPhone("");
+  setShowCreateNew(false);
+  setPhoneSavedMsg("");
+};
 
   const handleSave = async () => {
     setSubmitted(true);
@@ -220,7 +189,6 @@ export default function SiteWorkForm({
 
   // แสดงฟอร์มสร้างชิ้นงานเมื่อ: ยังไม่ได้เลือกลูกค้าเลย, เลือก "ลูกค้าใหม่", หรือกด "สร้างโครงงานใหม่" ให้ลูกค้าเดิม
   const showCreateForm = Boolean(selectedCustomer) && showCreateNew;
-  const phoneUnchanged = phone.trim() === (selectedCustomer?.phone || "").trim();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
@@ -292,30 +260,6 @@ export default function SiteWorkForm({
               <X size={12} />
               เปลี่ยนลูกค้า
             </button>
-          </div>
-
-          <div className="p-4 border-b" style={{ borderColor: COLORS.border }}>
-            <FieldLabel icon={Phone}>แก้ไขเบอร์โทรสำหรับโครงงานนี้ (ถ้าจำเป็น)</FieldLabel>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <TextInput type="tel" placeholder="" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <button
-                type="button"
-                onClick={handleSavePhone}
-                disabled={savingPhone || !phone.trim() || phoneUnchanged}
-                className="shrink-0 flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
-                style={{ background: COLORS.green }}
-              >
-                <Save size={14} />
-                {savingPhone ? "กำลังบันทึก..." : "บันทึกเบอร์"}
-              </button>
-            </div>
-            {phoneSavedMsg && (
-              <p className="mt-1.5 text-xs font-medium" style={{ color: COLORS.green }}>
-                {phoneSavedMsg}
-              </p>
-            )}
           </div>
 
           {customerProjects.length > 0 ? (

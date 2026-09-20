@@ -1,4 +1,4 @@
-import { ClipboardList, Users, UserPlus, Contact, ListChecks } from "lucide-react";
+import { ClipboardList, Users, UserPlus, Contact, ListChecks, Plus } from "lucide-react";
 
 // เมนูหลักของระบบ - Sidebar (เดสก์ท็อป) และ MobileBottomNav (มือถือ) ใช้ร่วมกัน
 // เมนูที่มี children = กดแล้วกางเมนูย่อยลงมาให้เลือก
@@ -12,9 +12,15 @@ export const MENU = [
       { key: "customer-new", label: "เพิ่มลูกค้า", icon: UserPlus },
     ],
   },
-  { key: "form", label: "โครงงาน", icon: ClipboardList },
-  // เดิมชื่อ "ลูกค้า" - เปลี่ยนเพื่อไม่ให้ซ้ำกับเมนูลูกค้าใหม่ (หน้านี้คือสถานะงานของลูกค้า)
-  { key: "customers", label: "สถานะงาน", icon: ListChecks },
+  {
+    key: "project-group",
+    label: "โครงงาน",
+    icon: ClipboardList,
+    children: [
+      { key: "form", label: "เพิ่ม", icon: Plus },
+      { key: "project-detail", label: "รายละเอียดงาน", icon: ListChecks },
+    ],
+  },
 ];
 
 export function isGroupActive(menuItem, activeView) {

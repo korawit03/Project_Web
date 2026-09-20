@@ -16,7 +16,8 @@ export function validateItem(item, workCatalog) {
   if (item.mainWork && workCatalog[item.mainWork]) {
     const answerErrors = {};
     workCatalog[item.mainWork].fields.forEach((field) => {
-      if (!isFieldVisible(field, item.answers)) return; // ซ่อนอยู่ = ไม่ต้องบังคับ
+      if (!isFieldVisible(field, item.answers)) return;
+      if (!field.options?.length) return; // ไม่มีตัวเลือกให้เลือก = ไม่บังคับ
       if (!item.answers?.[field.key]) answerErrors[field.key] = true;
     });
     if (Object.keys(answerErrors).length > 0) errors.answers = answerErrors;
@@ -56,6 +57,6 @@ export function buildErrorMessages(errors, items, workCatalog) {
       });
     }
   });
-  
+
   return msgs;
 }

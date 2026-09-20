@@ -162,7 +162,7 @@ export default function WorkItemCard({
                       value={item.answers?.[field.key] || ""}
                       onChange={(e) => setAnswer(field.key, e.target.value)}
                       options={field.options}
-                      placeholder={`-- เลือก${field.label} --`}
+                      placeholder={field.options.length ? `-- เลือก${field.label} --` : "ยังไม่มีตัวเลือก (แจ้งผู้ดูแลระบบ)"}
                       error={errors.answers?.[field.key]}
                     />
                   </div>

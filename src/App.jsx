@@ -3,7 +3,6 @@ import Sidebar from "./components/Sidebar.jsx";
 import MobileTopBar from "./components/MobileTopBar.jsx";
 import MobileBottomNav from "./components/MobileBottomNav.jsx";
 import SiteWorkForm from "./pages/SiteWorkForm.jsx";
-import CustomerListPage from "./pages/CustomerListPage.jsx";
 import CustomerCreatePage from "./pages/CustomerCreatePage.jsx";
 import { COLORS } from "./lib/tokens.js";
 import { supabase } from "./lib/supabase.js";
@@ -13,6 +12,7 @@ import { saveAllWorkItems, updateItemStatus } from "./lib/jobItems.js";
 import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
 import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
+import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
 // แยกตาม photo_type ('work' / 'position') แล้วเรียงตาม sort_order
@@ -64,7 +64,8 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
-  const { customers, findOrCreateCustomer, createCustomer, updateCustomerPhone, updateCustomer,customersLoading, loadCustomers } = useCustomers();
+  const { customers, loading: customersLoading, findOrCreateCustomer, createCustomer,
+        updateCustomerPhone, updateCustomer, loadCustomers } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -144,53 +145,29 @@ export default function App() {
   };
 
   const handleDeleteProject = async (projectId) => {
-    const projectToDelete = projects.find((p) => p.id === projectId);
-    const customerId = projectToDelete?.customerId;
+  const projectToDelete = projects.find((p) => p.id === projectId);
 
-    // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
-    if (projectToDelete) {
-      const allPhotos = projectToDelete.items.flatMap((it) => [
-        ...(it.positionPhotos || []),
-        ...(it.workPhotos || []),
-      ]);
-      if (allPhotos.length > 0) {
-        await deletePhotos(allPhotos);
-      }
+  // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
+  if (projectToDelete) {
+    const allPhotos = projectToDelete.items.flatMap((it) => [
+      ...(it.positionPhotos || []),
+      ...(it.workPhotos || []),
+    ]);
+    if (allPhotos.length > 0) {
+      await deletePhotos(allPhotos);
     }
+  }
 
-    const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
+  const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
 
-    if (error) {
-      console.error("Delete project failed:", error);
-      alert("ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      return;
-    }
+  if (error) {
+    console.error("Delete project failed:", error);
+    alert("ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    return;
+  }
 
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
-
-    // ถ้าลูกค้าคนนี้ไม่มีโครงการอื่นเหลืออยู่แล้ว ให้ลบข้อมูลลูกค้าออกจาก customers ด้วย
-    if (customerId) {
-      const hasOtherProjects = projects.some(
-        (p) => p.id !== projectId && p.customerId === customerId
-      );
-      if (!hasOtherProjects) {
-        const { data: deletedCustomer, error: customerDeleteError } = await supabase
-          .from("customers")
-          .delete()
-          .eq("customer_id", customerId)
-          .select();
-
-        if (customerDeleteError) {
-          console.error("Delete customer failed:", customerDeleteError);
-        } else if (!deletedCustomer || deletedCustomer.length === 0) {
-          // ลบไม่สำเร็จแบบเงียบ ๆ (0 แถวถูกลบ) มักเกิดจาก RLS policy บนตาราง customers ไม่อนุญาตให้ DELETE
-          console.warn("Customer delete affected 0 rows — check RLS policy on 'customers' table");
-        } else {
-          loadCustomers();
-        }
-      }
-    }
-  };
+  setProjects((prev) => prev.filter((p) => p.id !== projectId));
+};
 
   const handleItemStatusChange = async (projectId, itemId, status) => {
     // อัปเดตหน้าจอทันที (optimistic) แล้วค่อยยิงไป Supabase จริง
@@ -240,16 +217,13 @@ export default function App() {
     />
   ) : activeView === "customer-new" ? (
     <CustomerCreatePage createCustomer={createCustomer} />
-  ) : (
-    <CustomerListPage
+  ) : activeView === "project-detail" ? (
+    <ProjectDetailPage
       projects={projects}
       loading={loading}
-      onUpdateProject={handleUpdateProject}
-      onDeleteProject={handleDeleteProject}
-      workCatalog={workCatalog}
-      categoryOrder={categoryOrder}
+      onItemStatusChange={handleItemStatusChange}
     />
-  )}
+  ) : null}
 </main>
 
         <MobileBottomNav activeView={activeView} onNavigate={setActiveView} />
