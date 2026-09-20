@@ -1,4 +1,15 @@
-import { ClipboardList, Users, UserPlus, Contact, ListChecks, Plus } from "lucide-react";
+import {
+  ClipboardList,
+  Users,
+  UserPlus,
+  Contact,
+  ListChecks,
+  Plus,
+  Settings,
+  Layers,
+  SlidersHorizontal,
+  List,
+} from "lucide-react";
 
 // เมนูหลักของระบบ - Sidebar (เดสก์ท็อป) และ MobileBottomNav (มือถือ) ใช้ร่วมกัน
 // เมนูที่มี children = กดแล้วกางเมนูย่อยลงมาให้เลือก
@@ -19,6 +30,16 @@ export const MENU = [
     children: [
       { key: "form", label: "เพิ่ม", icon: Plus },
       { key: "project-detail", label: "รายละเอียดงาน", icon: ListChecks },
+    ],
+  },
+  {
+    key: "catalog-group",
+    label: "ตั้งค่างาน",
+    icon: Settings,
+    children: [
+      { key: "catalog-types", label: "ประเภทชิ้นงาน", icon: Layers },
+      { key: "catalog-fields", label: "รายละเอียดชิ้นงาน", icon: SlidersHorizontal },
+      { key: "catalog-options", label: "ตัวเลือก", icon: List },
     ],
   },
 ];
