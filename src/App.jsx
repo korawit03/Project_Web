@@ -13,6 +13,10 @@ import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
 import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
+//ใหม่
+import CatalogTypesPage from "./pages/CatalogTypesPage.jsx";
+import CatalogFieldsPage from "./pages/CatalogFieldsPage.jsx";
+import CatalogOptionsPage from "./pages/CatalogOptionsPage.jsx";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
 // แยกตาม photo_type ('work' / 'position') แล้วเรียงตาม sort_order
@@ -33,7 +37,7 @@ function mapProjectFromDb(row) {
   return {
     id: row.project_id,
     projectName: row.project_name || "",
-    customerId: row.customer_id,   
+    customerId: row.customer_id,
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
     customerPhone: row.customer?.phone || "",
     location: row.location,
@@ -63,9 +67,9 @@ export default function App() {
   const [activeView, setActiveView] = useState("form");
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { workCatalog, categoryOrder, loading: catalogLoading } = useWorkCatalog();
+  const { workCatalog, categoryOrder, loading: catalogLoading, reload: reloadCatalog } = useWorkCatalog();
   const { customers, loading: customersLoading, findOrCreateCustomer, createCustomer,
-        updateCustomerPhone, updateCustomer, loadCustomers } = useCustomers();
+    updateCustomerPhone, updateCustomer, loadCustomers } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -145,29 +149,29 @@ export default function App() {
   };
 
   const handleDeleteProject = async (projectId) => {
-  const projectToDelete = projects.find((p) => p.id === projectId);
+    const projectToDelete = projects.find((p) => p.id === projectId);
 
-  // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
-  if (projectToDelete) {
-    const allPhotos = projectToDelete.items.flatMap((it) => [
-      ...(it.positionPhotos || []),
-      ...(it.workPhotos || []),
-    ]);
-    if (allPhotos.length > 0) {
-      await deletePhotos(allPhotos);
+    // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
+    if (projectToDelete) {
+      const allPhotos = projectToDelete.items.flatMap((it) => [
+        ...(it.positionPhotos || []),
+        ...(it.workPhotos || []),
+      ]);
+      if (allPhotos.length > 0) {
+        await deletePhotos(allPhotos);
+      }
     }
-  }
 
-  const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
+    const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
 
-  if (error) {
-    console.error("Delete project failed:", error);
-    alert("ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-    return;
-  }
+    if (error) {
+      console.error("Delete project failed:", error);
+      alert("ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
 
-  setProjects((prev) => prev.filter((p) => p.id !== projectId));
-};
+    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+  };
 
   const handleItemStatusChange = async (projectId, itemId, status) => {
     // อัปเดตหน้าจอทันที (optimistic) แล้วค่อยยิงไป Supabase จริง
@@ -195,36 +199,43 @@ export default function App() {
         <MobileTopBar />
 
         <main className="flex-1 min-w-0 pb-20 md:pb-0">
-  {activeView === "form" ? (
-    <SiteWorkForm
-      onSaved={handleSaved}
-      workCatalog={workCatalog}
-      categoryOrder={categoryOrder}
-      catalogLoading={catalogLoading}
-      customers={customers}
-      findOrCreateCustomer={findOrCreateCustomer}
-      updateCustomerPhone={updateCustomerPhone}
-      projects={projects}
-      onUpdateProject={handleUpdateProject}
-      onDeleteProject={handleDeleteProject}
-    />
-  ) : activeView === "customer-list" ? (
-    <CustomerDetailPage
-      customers={customers}
-      loading={customersLoading}
-      updateCustomer={updateCustomer}
-      onCustomerUpdated={loadProjects}
-    />
-  ) : activeView === "customer-new" ? (
-    <CustomerCreatePage createCustomer={createCustomer} />
-  ) : activeView === "project-detail" ? (
-    <ProjectDetailPage
-      projects={projects}
-      loading={loading}
-      onItemStatusChange={handleItemStatusChange}
-    />
-  ) : null}
-</main>
+          {activeView === "form" ? (
+            <SiteWorkForm
+              onSaved={handleSaved}
+              workCatalog={workCatalog}
+              categoryOrder={categoryOrder}
+              catalogLoading={catalogLoading}
+              customers={customers}
+              findOrCreateCustomer={findOrCreateCustomer}
+              updateCustomerPhone={updateCustomerPhone}
+              projects={projects}
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
+            />
+          ) : activeView === "customer-list" ? (
+            <CustomerDetailPage
+              customers={customers}
+              loading={customersLoading}
+              updateCustomer={updateCustomer}
+              onCustomerUpdated={loadProjects}
+            />
+          ) : activeView === "customer-new" ? (
+            <CustomerCreatePage createCustomer={createCustomer} />
+          ) : activeView === "project-detail" ? (
+            <ProjectDetailPage
+              projects={projects}
+              loading={loading}
+              onItemStatusChange={handleItemStatusChange}
+            />
+          ) : activeView === "catalog-types" ? (
+            <CatalogTypesPage onChanged={reloadCatalog} />
+          ) : activeView === "catalog-fields" ? (
+            <CatalogFieldsPage onChanged={reloadCatalog} />
+          ) : activeView === "catalog-options" ? (
+            <CatalogOptionsPage onChanged={reloadCatalog} />
+          ) : null}
+
+        </main>
 
         <MobileBottomNav activeView={activeView} onNavigate={setActiveView} />
       </div>

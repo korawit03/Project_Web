@@ -44,16 +44,23 @@ export function useWorkCatalog() {
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("work_categories").select(`
-      name, sort_order,
-      work_types (
+    // โหลดเฉพาะรายการที่เปิดใช้งาน (is_active) ทุกชั้น
+    const { data, error } = await supabase
+      .from("work_categories")
+      .select(`
         name, sort_order,
-        work_type_fields (
-          field_key, label,depends_on , sort_order,
-          work_type_field_options ( value, sort_order )
+        work_types (
+          name, sort_order, is_active,
+          work_type_fields (
+            field_key, label, depends_on, sort_order, is_active,
+            work_type_field_options ( value, sort_order, is_active )
+          )
         )
-      )
-    `);
+      `)
+      .eq("is_active", true)
+      .eq("work_types.is_active", true)
+      .eq("work_types.work_type_fields.is_active", true)
+      .eq("work_types.work_type_fields.work_type_field_options.is_active", true);
 
     if (error) {
       console.error("Load work catalog failed:", error);
@@ -71,5 +78,5 @@ export function useWorkCatalog() {
     loadCatalog();
   }, [loadCatalog]);
 
-  return { workCatalog, categoryOrder, loading };
+  return { workCatalog, categoryOrder, loading, reload: loadCatalog };
 }
