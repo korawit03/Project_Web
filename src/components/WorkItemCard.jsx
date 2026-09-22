@@ -184,7 +184,7 @@ export default function WorkItemCard({
           />
           {errors.positionNote && <ErrorText>กรุณาระบุรายละเอียดหน้างาน</ErrorText>}
           <PhotoDropzone
-            label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง (เลือกได้หลายรูป)"
+            label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง"
             photos={item.positionPhotos}
             onAdd={(list) => set({ positionPhotos: [...list, ...item.positionPhotos] })}
             onRemove={(id) => set({ positionPhotos: item.positionPhotos.filter((p) => p.id !== id) })}
