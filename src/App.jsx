@@ -13,23 +13,23 @@ import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
 import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
-//ใหม่
+
 import CatalogTypesPage from "./pages/CatalogTypesPage.jsx";
 import CatalogFieldsPage from "./pages/CatalogFieldsPage.jsx";
 import CatalogOptionsPage from "./pages/CatalogOptionsPage.jsx";
 
-// แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ PhotoDropzone ใช้ ({ id, url, path, name })
-// แยกตาม photo_type ('work' / 'position') แล้วเรียงตาม sort_order
+// แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ใช้งาน ({ id, url, path, name })
+// ปรับปรุงให้รองรับทั้ง image_url และ url เพื่อป้องกันปัญหารูปไม่ขึ้น
 function mapPhotos(sitePhotos, photoType) {
   return (sitePhotos || [])
     .filter((p) => p.photo_type === photoType)
     .slice()
-    .sort((a, b) => a.sort_order - b.sort_order)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
     .map((p) => ({
       id: p.storage_path || `photo-${p.photo_id}`,
-      url: p.image_url,
+      url: p.image_url || p.url || "",
       path: p.storage_path,
-      name: p.storage_path,
+      name: p.storage_path || "photo",
     }));
 }
 
@@ -48,7 +48,7 @@ function mapProjectFromDb(row) {
 
     items: (row.job_items || [])
       .slice()
-      .sort((a, b) => a.sort_order - b.sort_order)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       .map((it) => ({
         id: it.item_id,
         itemName: it.item_name || "",
@@ -69,7 +69,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading, reload: reloadCatalog } = useWorkCatalog();
   const { customers, loading: customersLoading, findOrCreateCustomer, createCustomer,
-    updateCustomerPhone, updateCustomer, loadCustomers } = useCustomers();
+    updateCustomerPhone, updateCustomer } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -97,7 +97,6 @@ export default function App() {
   };
 
   const handleUpdateProject = async (projectId, updatedProject) => {
-    // หาลูกค้าเดิมจากชื่อที่แก้ไข หรือสร้างลูกค้าใหม่ถ้าเปลี่ยนเป็นชื่อที่ยังไม่เคยมี
     let customer;
     try {
       customer = await findOrCreateCustomer(updatedProject.customerName, updatedProject.customerPhone);
@@ -123,8 +122,6 @@ export default function App() {
       return false;
     }
 
-    // ลบชิ้นงานเดิมทั้งหมดของโปรเจกต์นี้ (site_photos ที่ผูกอยู่จะถูกลบตามไปด้วยอัตโนมัติ
-    // เพราะตั้ง FK เป็น ON DELETE CASCADE ไว้แล้ว ไม่ต้องลบเองแยกต่างหาก)
     const { error: deleteError } = await supabase
       .from("job_items")
       .delete()
@@ -151,7 +148,6 @@ export default function App() {
   const handleDeleteProject = async (projectId) => {
     const projectToDelete = projects.find((p) => p.id === projectId);
 
-    // ลบรูปทั้งหมดใน Storage ก่อน (ทั้ง positionPhotos และ workPhotos ของทุกชิ้นงาน)
     if (projectToDelete) {
       const allPhotos = projectToDelete.items.flatMap((it) => [
         ...(it.positionPhotos || []),
@@ -174,7 +170,6 @@ export default function App() {
   };
 
   const handleItemStatusChange = async (projectId, itemId, status) => {
-    // อัปเดตหน้าจอทันที (optimistic) แล้วค่อยยิงไป Supabase จริง
     setProjects((prev) =>
       prev.map((p) =>
         p.id !== projectId
@@ -226,6 +221,7 @@ export default function App() {
               projects={projects}
               loading={loading}
               onItemStatusChange={handleItemStatusChange}
+              workCatalog={workCatalog}
             />
           ) : activeView === "catalog-types" ? (
             <CatalogTypesPage onChanged={reloadCatalog} />
@@ -234,7 +230,6 @@ export default function App() {
           ) : activeView === "catalog-options" ? (
             <CatalogOptionsPage onChanged={reloadCatalog} />
           ) : null}
-
         </main>
 
         <MobileBottomNav activeView={activeView} onNavigate={setActiveView} />

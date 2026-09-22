@@ -1,11 +1,9 @@
 import React, { useState, useMemo } from "react";
-import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers } from "lucide-react";
+import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus } from "../lib/status.js";
 import { StatusBadge, StatusSelect } from "../components/ui.jsx";
 
-// สถานะรวมจากชิ้นงานทั้งหมด
-//   ไม่มีชิ้นงาน -> null | เสร็จทุกชิ้น -> done | ยังไม่เริ่มสักชิ้น -> pending | นอกนั้น -> in_progress
 function getOverallStatus(items) {
   const list = items || [];
   if (list.length === 0) return { status: null, done: 0, total: 0 };
@@ -21,7 +19,7 @@ function BackButton({ onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="mb-4 flex items-center gap-1.5 text-sm font-medium"
+      className="mb-4 flex items-center gap-1.5 text-sm font-medium cursor-pointer hover:underline"
       style={{ color: COLORS.amberDark }}
     >
       <ArrowLeft size={14} />
@@ -69,14 +67,11 @@ function StatusCell({ items }) {
   );
 }
 
-// หน้า "รายละเอียดงาน" 2 ชั้น:
-//   ชั้น 1 ตาราง 1 แถวต่อลูกค้า: ลูกค้า | โครงงาน | สถานะ | ปุ่มดู
-//   ชั้น 2 กดดูแล้วแสดงโครงงานทั้งหมดของลูกค้าคนนั้น พร้อมชิ้นงาน 1, 2, 3 และสถานะ
-export default function ProjectDetailPage({ projects, loading, onItemStatusChange }) {
+export default function ProjectDetailPage({ projects, loading, onItemStatusChange, workCatalog = {} }) {
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState(null);
+  const [expandedItemId, setExpandedItemId] = useState(null);
 
-  // รวมโครงงานของลูกค้าคนเดียวกันเป็นแถวเดียว
   const groups = useMemo(() => {
     const map = new Map();
     projects.forEach((p) => {
@@ -99,10 +94,10 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
 
   const selected = groups.find((g) => g.key === selectedKey) || null;
 
-  // ===== ชั้น 2: โครงงานและชิ้นงานทั้งหมดของลูกค้าที่เลือก =====
   if (selected) {
     const allItems = selected.projects.flatMap((p) => p.items);
     const { done, total } = getOverallStatus(allItems);
+
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
         <BackButton onClick={() => setSelectedKey(null)}>กลับไปดูรายชื่อลูกค้า</BackButton>
@@ -127,48 +122,147 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                   โครงงานนี้ยังไม่มีชิ้นงาน
                 </p>
               ) : (
-                <div className="space-y-2.5">
-                  {p.items.map((item, idx) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border p-4"
-                      style={{ borderColor: COLORS.border, background: COLORS.surface }}
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
-                          style={{ background: COLORS.charcoal }}
-                        >
-                          {idx + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
-                            {item.itemName || item.mainWork || "(ยังไม่ระบุชิ้นงาน)"}
-                          </p>
-                          {item.itemName && item.mainWork && (
-                            <p className="truncate text-xs" style={{ color: COLORS.textMuted }}>
-                              {item.mainWork}
-                            </p>
-                          )}
-                          {item.positionNote && (
-                            <p className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
-                              <MapPin size={11} className="shrink-0" />
-                              <span className="truncate">{item.positionNote}</span>
-                            </p>
+                <div className="space-y-3">
+                  {p.items.map((item, idx) => {
+                    const isOpen = expandedItemId === item.id;
+                    const catalogEntry = workCatalog[item.mainWork];
+                    const positionPhotos = item.positionPhotos || [];
+                    const workPhotos = item.workPhotos || [];
+                    const hasPhotos = positionPhotos.length > 0 || workPhotos.length > 0;
+                    const hasAnswers = Object.keys(item.answers || {}).length > 0;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border overflow-hidden"
+                        style={{ borderColor: COLORS.border, background: COLORS.surface }}
+                      >
+                        <div className="flex items-center justify-between gap-3 p-4">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedItemId(isOpen ? null : item.id)}
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer"
+                          >
+                            <span
+                              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white"
+                              style={{ background: COLORS.charcoal }}
+                            >
+                              {idx + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+                                {item.itemName || item.mainWork || "(ยังไม่ระบุชิ้นงาน)"}
+                              </p>
+                              {item.itemName && item.mainWork && (
+                                <p className="truncate text-xs" style={{ color: COLORS.textMuted }}>
+                                  {item.mainWork}
+                                </p>
+                              )}
+                              {item.positionNote && (
+                                <p className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
+                                  <MapPin size={11} className="shrink-0" />
+                                  <span className="truncate">{item.positionNote}</span>
+                                </p>
+                              )}
+                            </div>
+                            {isOpen ? (
+                              <ChevronUp size={16} className="shrink-0" style={{ color: COLORS.textMuted }} />
+                            ) : (
+                              <ChevronDown size={16} className="shrink-0" style={{ color: COLORS.textMuted }} />
+                            )}
+                          </button>
+
+                          {onItemStatusChange ? (
+                            <StatusSelect
+                              value={item.status}
+                              onChange={(e) => onItemStatusChange(p.id, item.id, e.target.value)}
+                            />
+                          ) : (
+                            <StatusBadge status={item.status} />
                           )}
                         </div>
-                      </div>
 
-                      {onItemStatusChange ? (
-                        <StatusSelect
-                          value={item.status}
-                          onChange={(e) => onItemStatusChange(p.id, item.id, e.target.value)}
-                        />
-                      ) : (
-                        <StatusBadge status={item.status} />
-                      )}
-                    </div>
-                  ))}
+                        {isOpen && (
+                          <div className="space-y-3.5 border-t p-4" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
+                            {/* ข้อมูลคุณลักษณะ (Answers) */}
+                            {hasAnswers && (
+                              <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+                                {Object.entries(item.answers).map(([key, value]) => {
+                                  const field = catalogEntry?.fields?.find((f) => f.key === key);
+                                  return (
+                                    <span key={key} style={{ color: COLORS.charcoalSoft }}>
+                                      <span className="font-medium" style={{ color: COLORS.textMuted }}>{field?.label || key}:</span> {String(value)}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            {/* รายละเอียดชิ้นงาน */}
+                            {item.note && (
+                              <p className="text-xs italic" style={{ color: COLORS.textMuted }}>
+                                รายละเอียดชิ้นงาน: {item.note}
+                              </p>
+                            )}
+
+                            {/* รูปภาพตำแหน่งติดตั้ง */}
+                            {positionPhotos.length > 0 && (
+                              <div className="pt-1">
+                                <p className="mb-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: COLORS.charcoal }}>
+                                  <ImageIcon size={12} style={{ color: COLORS.amber }} />
+                                  รูปตำแหน่งติดตั้ง ({positionPhotos.length})
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {positionPhotos.map((ph) => (
+                                    <a
+                                      key={ph.id || ph.url}
+                                      href={ph.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="block h-16 w-16 overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
+                                      style={{ borderColor: COLORS.border }}
+                                    >
+                                      <img src={ph.url} alt={ph.name || "รูปตำแหน่ง"} className="h-full w-full object-cover" />
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* รูปภาพงาน */}
+                            {workPhotos.length > 0 && (
+                              <div className="pt-1">
+                                <p className="mb-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: COLORS.charcoal }}>
+                                  <ImageIcon size={12} style={{ color: COLORS.amber }} />
+                                  รูปงาน ({workPhotos.length})
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {workPhotos.map((ph) => (
+                                    <a
+                                      key={ph.id || ph.url}
+                                      href={ph.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="block h-16 w-16 overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
+                                      style={{ borderColor: COLORS.border }}
+                                    >
+                                      <img src={ph.url} alt={ph.name || "รูปงาน"} className="h-full w-full object-cover" />
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {!hasAnswers && !item.note && !hasPhotos && (
+                              <p className="text-xs" style={{ color: COLORS.textMuted }}>
+                                ไม่มีรายละเอียดเพิ่มเติม
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -178,7 +272,6 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
     );
   }
 
-  // ===== ชั้น 1: ตารางลูกค้า (1 แถวต่อคน) =====
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
       <Header title="รายละเอียดงาน" />
@@ -208,7 +301,6 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-          {/* หัวตาราง (เฉพาะจอกว้าง) */}
           <div
             className="hidden items-center gap-4 border-b px-4 py-2.5 text-xs font-medium md:grid md:grid-cols-[1fr_1.2fr_9rem_2.5rem]"
             style={{ borderColor: COLORS.border, background: "#FAF8F3", color: COLORS.textMuted }}
@@ -238,12 +330,11 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                   </span>
                 </div>
 
-                {/* มือถือ: ปุ่มดูอยู่ฝั่งขวาแถวแรก / จอกว้าง: ไปอยู่คอลัมน์ท้ายสุด */}
                 <button
                   type="button"
                   onClick={() => setSelectedKey(g.key)}
                   aria-label={`ดูรายละเอียดงานของ ${g.name}`}
-                  className="flex h-8 w-8 items-center justify-center justify-self-end rounded-md border md:order-last"
+                  className="flex h-8 w-8 items-center justify-center justify-self-end rounded-md border cursor-pointer hover:bg-gray-50 md:order-last"
                   style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
                 >
                   <Eye size={15} />
