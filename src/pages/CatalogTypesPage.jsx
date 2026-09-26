@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Layers, Plus, ChevronDown, ChevronUp, Pencil, Power, Check, X } from "lucide-react";
-import { COLORS } from "../lib/tokens.js";
+import { Layers, Plus, ChevronRight, ArrowUp, ArrowDown, Pencil, Power, Check, X } from "lucide-react"; import { COLORS } from "../lib/tokens.js";
 import {
   PK,
   useCatalogAdmin,
@@ -77,10 +76,14 @@ function TreeRow({
           <button
             type="button"
             onClick={onToggleExpand}
+            title={expanded ? "ย่อเก็บ" : "กางดูรายละเอียด"}
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border"
             style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
           >
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <ChevronRight
+              size={16}
+              style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}
+            />
           </button>
         ) : (
           <span className="w-7 shrink-0" />
@@ -130,11 +133,11 @@ function TreeRow({
             </>
           ) : (
             <>
-              <IconBtnLocal title="เลื่อนขึ้น" onClick={onMoveUp} disabled={busy || !canMoveUp}>
-                <ChevronUp size={14} />
+              <IconBtnLocal title="เลื่อนลำดับขึ้น" onClick={onMoveUp} disabled={busy || !canMoveUp}>
+                <ArrowUp size={14} />
               </IconBtnLocal>
-              <IconBtnLocal title="เลื่อนลง" onClick={onMoveDown} disabled={busy || !canMoveDown}>
-                <ChevronDown size={14} />
+              <IconBtnLocal title="เลื่อนลำดับลง" onClick={onMoveDown} disabled={busy || !canMoveDown}>
+                <ArrowDown size={14} />
               </IconBtnLocal>
               <IconBtnLocal title="แก้ชื่อ" onClick={startEdit} disabled={busy}>
                 <Pencil size={13} />
@@ -215,9 +218,6 @@ function FieldNode({ field, type, idx, total, busy, run, onMove }) {
 
   const dependsSelect = (
     <div className="flex flex-wrap items-center gap-2">
-      <code className="rounded px-1.5 py-0.5 text-[11px]" style={{ background: "#EEECE6", color: COLORS.charcoalSoft }}>
-        {field.field_key}
-      </code>
       <select
         value={field.depends_on || ""}
         disabled={busy}
@@ -226,7 +226,7 @@ function FieldNode({ field, type, idx, total, busy, run, onMove }) {
         style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
         title="แสดงช่องนี้เมื่อเลือกช่องอื่นแล้ว (และไม่ใช่ 'ไม่มี...')"
       >
-        <option value="">แสดงเสมอ</option>
+        <option value="">แสดงทั้งหมด</option>
         {candidates.map((o) => (
           <option key={o.field_key} value={o.field_key}>
             ขึ้นกับ: {o.label}
@@ -293,50 +293,43 @@ function FieldNode({ field, type, idx, total, busy, run, onMove }) {
   );
 }
 
+// สร้างรหัสช่อง (field_key) ให้อัตโนมัติ ไม่ต้องให้ผู้ใช้กรอกเอง
+// ต้องขึ้นต้นด้วยตัวอักษร และห้ามซ้ำ (สุ่ม + เวลา ทำให้ชนกันยากมาก)
+function generateFieldKey() {
+  return `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
 // ฟอร์มเพิ่มช่องรายละเอียดใหม่ (อยู่ใต้ชิ้นงานย่อยแต่ละอัน)
+// เหลือแค่ "ชื่อช่อง" กับ "ตัวเลือก" ให้กรอกง่ายที่สุด
+// - รหัสช่อง: ระบบสร้างให้อัตโนมัติ ไม่ต้องกรอก
+// - เงื่อนไข "ขึ้นกับ": ช่องใหม่จะเป็น "แสดงทั้งหมด" ก่อน ถ้าต้องการตั้งให้ขึ้นกับช่องอื่น
+//   ไปตั้งค่าได้ที่ dropdown ข้างแถวชื่อช่องหลังสร้างเสร็จแล้ว
 function AddFieldForm({ type, busy, run }) {
   const [label, setLabel] = useState("");
-  const [key, setKey] = useState("");
-  const [dependsOn, setDependsOn] = useState("");
   const [optionsText, setOptionsText] = useState("");
 
   const handleAdd = async () => {
     const ok = await run(
-      () => addField(type, { label, key, dependsOn, options: optionsText.split("\n") }),
+      () =>
+        addField(type, {
+          label,
+          key: generateFieldKey(),
+          dependsOn: "",
+          options: optionsText.split("\n"),
+        }),
       "เพิ่มช่องรายละเอียดเรียบร้อย"
     );
     if (ok) {
       setLabel("");
-      setKey("");
-      setDependsOn("");
       setOptionsText("");
     }
   };
 
   return (
     <div className="space-y-3 rounded-lg border p-3" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <div>
-          <FieldLabel required>ชื่อช่อง</FieldLabel>
-          <TextInput placeholder="เช่น สีกระจก" value={label} onChange={(e) => setLabel(e.target.value)} />
-        </div>
-        <div>
-          <FieldLabel required>รหัสช่อง (อังกฤษ)</FieldLabel>
-          <TextInput placeholder="เช่น glassColor" value={key} onChange={(e) => setKey(e.target.value)} />
-        </div>
-      </div>
-
       <div>
-        <FieldLabel>แสดงช่องนี้เมื่อ</FieldLabel>
-        <PlainSelect value={dependsOn} onChange={(e) => setDependsOn(e.target.value)} placeholder="แสดงเสมอ">
-          {type.fields
-            .filter((f) => f.is_active !== false)
-            .map((f) => (
-              <option key={f.field_key} value={f.field_key}>
-                เลือก "{f.label}" แล้ว (และไม่ใช่ "ไม่มี...")
-              </option>
-            ))}
-        </PlainSelect>
+        <FieldLabel required>ชื่อช่อง</FieldLabel>
+        <TextInput placeholder="เช่น สีกระจก" value={label} onChange={(e) => setLabel(e.target.value)} />
       </div>
 
       <div>
