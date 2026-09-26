@@ -6,9 +6,6 @@ import {
   ListChecks,
   Plus,
   Settings,
-  Layers,
-  SlidersHorizontal,
-  List,
 } from "lucide-react";
 
 // เมนูหลักของระบบ - Sidebar (เดสก์ท็อป) และ MobileBottomNav (มือถือ) ใช้ร่วมกัน
@@ -33,14 +30,9 @@ export const MENU = [
     ],
   },
   {
-    key: "catalog-group",
+    key: "catalog-types",
     label: "ตั้งค่างาน",
     icon: Settings,
-    children: [
-      { key: "catalog-types", label: "ประเภทชิ้นงาน", icon: Layers },
-      { key: "catalog-fields", label: "รายละเอียดชิ้นงาน", icon: SlidersHorizontal },
-      { key: "catalog-options", label: "ตัวเลือก", icon: List },
-    ],
   },
 ];
 

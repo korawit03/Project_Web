@@ -13,10 +13,7 @@ import { DEFAULT_STATUS } from "./lib/status.js";
 import { deletePhotos } from "./lib/storage.js";
 import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
-
 import CatalogTypesPage from "./pages/CatalogTypesPage.jsx";
-import CatalogFieldsPage from "./pages/CatalogFieldsPage.jsx";
-import CatalogOptionsPage from "./pages/CatalogOptionsPage.jsx";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ใช้งาน ({ id, url, path, name })
 // ปรับปรุงให้รองรับทั้ง image_url และ url เพื่อป้องกันปัญหารูปไม่ขึ้น
@@ -225,10 +222,6 @@ export default function App() {
             />
           ) : activeView === "catalog-types" ? (
             <CatalogTypesPage onChanged={reloadCatalog} />
-          ) : activeView === "catalog-fields" ? (
-            <CatalogFieldsPage onChanged={reloadCatalog} />
-          ) : activeView === "catalog-options" ? (
-            <CatalogOptionsPage onChanged={reloadCatalog} />
           ) : null}
         </main>
 
