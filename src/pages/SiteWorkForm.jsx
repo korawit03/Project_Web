@@ -251,7 +251,9 @@ export default function SiteWorkForm({
                 · {customerProjects.length} โครงงาน
               </span>
             </span>
-            <button
+            
+            {/* ปุ่มยกเลิกการเลือกลูกค้า หน้า เพิ่มโครงงาน */}
+            {/* <button
               type="button"
               onClick={resetCustomerSelection}
               className="flex items-center gap-1 text-xs font-medium"
@@ -259,7 +261,7 @@ export default function SiteWorkForm({
             >
               <X size={12} />
               เปลี่ยนลูกค้า
-            </button>
+            </button> */}
           </div>
 
           {customerProjects.length > 0 ? (
