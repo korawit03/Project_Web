@@ -117,12 +117,12 @@ export default function SiteWorkForm({
   const addItem = () => setItems((prev) => [...prev, newWorkItem()]);
 
   const resetCustomerSelection = () => {
-  setSelectedCustomerId("");
-  setProjectName("");
-  setPhone("");
-  setShowCreateNew(false);
-  setPhoneSavedMsg("");
-};
+    setSelectedCustomerId("");
+    setProjectName("");
+    setPhone("");
+    setShowCreateNew(false);
+    setPhoneSavedMsg("");
+  };
 
   const handleSave = async () => {
     setSubmitted(true);
@@ -251,7 +251,6 @@ export default function SiteWorkForm({
                 · {customerProjects.length} โครงงาน
               </span>
             </span>
-            
             {/* ปุ่มยกเลิกการเลือกลูกค้า หน้า เพิ่มโครงงาน */}
             {/* <button
               type="button"
@@ -313,7 +312,6 @@ export default function SiteWorkForm({
           </div>
         </div>
       )}
-
       {showCreateForm && (
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
@@ -336,12 +334,7 @@ export default function SiteWorkForm({
               <Layers size={15} style={{ color: COLORS.amber }} />
               ชิ้นงานที่ต้องการบันทึกข้อมูล
             </div>
-            <button type="button" onClick={addItem} className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium text-white" style={{ background: COLORS.green }}>
-              <Plus size={15} />
-              เพิ่มชิ้นงานถัดไป
-            </button>
           </div>
-
           <div className="space-y-4">
             {items.map((item, idx) => (
               <WorkItemCard
@@ -357,6 +350,17 @@ export default function SiteWorkForm({
               />
             ))}
           </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="button"
+              onClick={addItem}
+              className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium text-white"
+              style={{ background: COLORS.green }}
+            >
+              <Plus size={15} />
+              เพิ่มชิ้นงานถัดไป
+            </button>
+          </div>
 
           <div className="mt-7 flex flex-col items-center gap-2">
             <button
@@ -367,7 +371,7 @@ export default function SiteWorkForm({
               style={{ background: COLORS.charcoal }}
             >
               <Save size={16} style={{ color: COLORS.amber }} />
-              {saving ? "กำลังบันทึก..." : "บันทึกข้อมูลและอัปเดตลงระบบหลัก"}
+              {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
             </button>
           </div>
         </>

@@ -277,15 +277,6 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                <Layers size={14} style={{ color: COLORS.amber }} />
                                                                ชิ้นงาน
                                                       </div>
-                                                      <button
-                                                               type="button"
-                                                               onClick={addEditItem}
-                                                               className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-white"
-                                                               style={{ background: COLORS.green }}
-                                                      >
-                                                               <Plus size={13} />
-                                                               เพิ่มชิ้นงานถัดไป
-                                                      </button>
                                              </div>
 
                                              <div className="space-y-4">
@@ -303,6 +294,18 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                />
                                                       ))}
                                              </div>
+                                             <div className="flex justify-center">
+                                                      <button
+                                                               type="button"
+                                                               onClick={addEditItem}
+                                                               className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium text-white"
+                                                               style={{ background: COLORS.green }}
+                                                      >
+                                                               <Plus size={13} />
+                                                               เพิ่มชิ้นงานถัดไป
+                                                      </button>
+                                             </div>
+
 
                                              <div className="flex items-center justify-end gap-2 border-t pt-4" style={{ borderColor: COLORS.border }}>
                                                       <button

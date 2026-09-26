@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
-import { FieldLabel, TextInput, Select, ErrorText, StatusSelect } from "./ui.jsx";
+import { FieldLabel, TextInput, Select, ErrorText } from "./ui.jsx";
 import PhotoDropzone from "./PhotoDropzone.jsx";
 import { isNoneValue, isFieldVisible } from "../lib/validation.js";
 
@@ -85,7 +85,6 @@ export default function WorkItemCard({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <StatusSelect value={item.status} onChange={(e) => set({ status: e.target.value })} />
           {removable && (
             <button
               type="button"
