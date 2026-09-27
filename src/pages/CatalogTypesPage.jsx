@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
-import { Layers, Plus, ChevronRight, ArrowUp, ArrowDown, Pencil, Power, Check, X } from "lucide-react"; import { COLORS } from "../lib/tokens.js";
+import { Layers, Plus, ChevronRight, ArrowUp, ArrowDown, Pencil, Power, Check, X } from "lucide-react";
+import { COLORS } from "../lib/tokens.js";
 import {
   PK,
   useCatalogAdmin,
@@ -28,13 +29,22 @@ const RENAME_WARNING =
 const RENAME_WARNING_OPTION =
   "ชิ้นงานที่บันทึกไว้แล้วจะยังเก็บค่าเดิมไว้ ไม่เปลี่ยนตาม ต้องการเปลี่ยนชื่อตัวเลือกใช่ไหม?";
 
-// ===== แถวเดียวในต้นไม้ (ใช้ซ้ำทุกชั้น: หมวดหมู่ / ชิ้นงานย่อย / ช่องรายละเอียด / ตัวเลือก) =====
+// เส้นสี + ขนาดตัวอักษรต่างกันในแต่ละชั้น เพื่อให้แยกง่ายด้วยตาว่าอยู่ชั้นไหน
+// หมวดหมู่ (ใหญ่/หนาสุด) > ชิ้นงานย่อย > ช่องรายละเอียด > ตัวเลือก (เล็ก/บางสุด)
+const LEVEL_STYLE = {
+  category: { accent: COLORS.amber, text: "text-[15px] font-bold" },
+  type: { accent: COLORS.green, text: "text-sm font-semibold" },
+  field: { accent: COLORS.amberDark, text: "text-sm font-medium" },
+  option: { accent: COLORS.textMuted, text: "text-xs font-medium" },
+};
+
+// ===== แถวเดียวในต้นไม้ (ใช้ซ้ำทุกชั้น) =====
 function TreeRow({
+  level, // "category" | "type" | "field" | "option"
   label,
   active,
   extra,
   busy,
-  indent = 0,
   hasChildren = false,
   expanded,
   onToggleExpand,
@@ -49,6 +59,7 @@ function TreeRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label);
+  const { accent, text } = LEVEL_STYLE[level] || LEVEL_STYLE.field;
 
   const startEdit = () => {
     setDraft(label);
@@ -67,10 +78,14 @@ function TreeRow({
   };
 
   return (
-    <div style={{ marginLeft: indent }}>
+    <div>
       <div
-        className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2"
-        style={{ borderColor: COLORS.border, background: active ? "#FCFBF8" : "#F1EFE9" }}
+        className="flex flex-wrap items-center gap-2 rounded-lg border py-2 pl-2.5 pr-3"
+        style={{
+          borderColor: COLORS.border,
+          borderLeft: `3px solid ${active ? accent : COLORS.border}`,
+          background: active ? "#FCFBF8" : "#F1EFE9",
+        }}
       >
         {hasChildren ? (
           <button
@@ -104,7 +119,7 @@ function TreeRow({
             />
           ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold" style={{ color: active ? COLORS.charcoal : COLORS.textMuted }}>
+              <span className={text} style={{ color: active ? COLORS.charcoal : COLORS.textMuted }}>
                 {label}
               </span>
               {!active && (
@@ -142,23 +157,20 @@ function TreeRow({
               <IconBtnLocal title="แก้ชื่อ" onClick={startEdit} disabled={busy}>
                 <Pencil size={13} />
               </IconBtnLocal>
-              <button
-                type="button"
+              <IconBtnLocal
+                title={active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
                 onClick={onToggleActive}
                 disabled={busy}
-                className="flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium disabled:opacity-40"
-                style={{ borderColor: COLORS.border, background: "white", color: active ? COLORS.red : COLORS.green }}
               >
-                <Power size={12} />
-                {active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
-              </button>
+                <Power size={14} color={active ? COLORS.red : COLORS.green} />
+              </IconBtnLocal>
             </>
           )}
         </div>
       </div>
 
       {expanded && hasChildren && (
-        <div className="mt-2 mb-1 space-y-2 border-l pl-3" style={{ borderColor: COLORS.border }}>
+        <div className="mt-2 mb-1 ml-4 space-y-2 border-l pl-3" style={{ borderColor: COLORS.border }}>
           {children}
         </div>
       )}
@@ -193,6 +205,7 @@ function OptionNode({ option, field, idx, total, busy, run, onMove }) {
 
   return (
     <TreeRow
+      level="option"
       label={option.value}
       active={active}
       busy={busy}
@@ -208,8 +221,7 @@ function OptionNode({ option, field, idx, total, busy, run, onMove }) {
 }
 
 // ===== ชั้นที่ 3: ช่องรายละเอียด (กางลงมาเป็นตัวเลือก) =====
-function FieldNode({ field, type, idx, total, busy, run, onMove }) {
-  const [expanded, setExpanded] = useState(false);
+function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
   const active = field.is_active !== false;
 
   const candidates = type.fields.filter(
@@ -226,7 +238,7 @@ function FieldNode({ field, type, idx, total, busy, run, onMove }) {
         style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
         title="แสดงช่องนี้เมื่อเลือกช่องอื่นแล้ว (และไม่ใช่ 'ไม่มี...')"
       >
-        <option value="">แสดงทั้งหมด</option>
+        <option value="">แสดงเสมอ</option>
         {candidates.map((o) => (
           <option key={o.field_key} value={o.field_key}>
             ขึ้นกับ: {o.label}
@@ -247,13 +259,14 @@ function FieldNode({ field, type, idx, total, busy, run, onMove }) {
 
   return (
     <TreeRow
+      level="field"
       label={field.label}
       active={active}
       extra={dependsSelect}
       busy={busy}
       hasChildren
       expanded={expanded}
-      onToggleExpand={() => setExpanded((v) => !v)}
+      onToggleExpand={onToggleExpand}
       onRename={(name) => run(() => renameField(field[PK.field], name), "เปลี่ยนชื่อเรียบร้อย")}
       onToggleActive={toggleActive}
       onMoveUp={() => onMove(-1)}
@@ -294,18 +307,17 @@ function FieldNode({ field, type, idx, total, busy, run, onMove }) {
 }
 
 // สร้างรหัสช่อง (field_key) ให้อัตโนมัติ ไม่ต้องให้ผู้ใช้กรอกเอง
-// ต้องขึ้นต้นด้วยตัวอักษร และห้ามซ้ำ (สุ่ม + เวลา ทำให้ชนกันยากมาก)
+// สร้างรหัสช่อง (field_key) ให้อัตโนมัติ ไม่ต้องให้ผู้ใช้กรอกเอง
 function generateFieldKey() {
   return `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
 // ฟอร์มเพิ่มช่องรายละเอียดใหม่ (อยู่ใต้ชิ้นงานย่อยแต่ละอัน)
-// เหลือแค่ "ชื่อช่อง" กับ "ตัวเลือก" ให้กรอกง่ายที่สุด
-// - รหัสช่อง: ระบบสร้างให้อัตโนมัติ ไม่ต้องกรอก
-// - เงื่อนไข "ขึ้นกับ": ช่องใหม่จะเป็น "แสดงทั้งหมด" ก่อน ถ้าต้องการตั้งให้ขึ้นกับช่องอื่น
-//   ไปตั้งค่าได้ที่ dropdown ข้างแถวชื่อช่องหลังสร้างเสร็จแล้ว
+// มีตัวเลือก "แสดงช่องนี้เมื่อ" ให้ผูกเงื่อนไขกับช่องอื่นได้ตั้งแต่ตอนสร้าง
+// เช่น ช่อง "สีกระจก" ตั้งให้แสดงเมื่อเลือก "มีกระจกไหม" แล้ว (และค่าที่เลือกไม่ขึ้นต้นด้วย "ไม่มี")
 function AddFieldForm({ type, busy, run }) {
   const [label, setLabel] = useState("");
+  const [dependsOn, setDependsOn] = useState("");
   const [optionsText, setOptionsText] = useState("");
 
   const handleAdd = async () => {
@@ -314,13 +326,14 @@ function AddFieldForm({ type, busy, run }) {
         addField(type, {
           label,
           key: generateFieldKey(),
-          dependsOn: "",
+          dependsOn,
           options: optionsText.split("\n"),
         }),
       "เพิ่มช่องรายละเอียดเรียบร้อย"
     );
     if (ok) {
       setLabel("");
+      setDependsOn("");
       setOptionsText("");
     }
   };
@@ -331,6 +344,24 @@ function AddFieldForm({ type, busy, run }) {
         <FieldLabel required>ชื่อช่อง</FieldLabel>
         <TextInput placeholder="เช่น สีกระจก" value={label} onChange={(e) => setLabel(e.target.value)} />
       </div>
+
+      {type.fields.filter((f) => f.is_active !== false).length > 0 && (
+        <div>
+          <FieldLabel>แสดงช่องนี้เมื่อ</FieldLabel>
+          <PlainSelect value={dependsOn} onChange={(e) => setDependsOn(e.target.value)} placeholder="แสดงเสมอ (ไม่ผูกเงื่อนไข)">
+            {type.fields
+              .filter((f) => f.is_active !== false)
+              .map((f) => (
+                <option key={f.field_key} value={f.field_key}>
+                  เลือก "{f.label}" แล้ว (และไม่ใช่ตัวเลือกที่ขึ้นต้นด้วย "ไม่มี")
+                </option>
+              ))}
+          </PlainSelect>
+          <p className="mt-1 text-xs" style={{ color: COLORS.textMuted }}>
+            ถ้าอยากให้ช่องนี้โผล่เฉพาะบางกรณี (เช่น "สีกระจก" โผล่เมื่อ "มีกระจกไหม" ตอบว่า "มี") ให้เลือกช่องแม่ตรงนี้
+          </p>
+        </div>
+      )}
 
       <div>
         <FieldLabel required>ตัวเลือก (1 บรรทัดต่อ 1 ตัวเลือก)</FieldLabel>
@@ -362,18 +393,20 @@ function AddFieldForm({ type, busy, run }) {
 }
 
 // ===== ชั้นที่ 2: ชิ้นงานย่อย (กางลงมาเป็นช่องรายละเอียด) =====
-function TypeNode({ type, catalog, idx, total, busy, run, onMove }) {
-  const [expanded, setExpanded] = useState(false);
+// กางได้ทีละ "ช่องรายละเอียด" ต่อชิ้นงานย่อยหนึ่งอัน (accordion) กันหน้ายาวเกินไป
+function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
+  const [openFieldId, setOpenFieldId] = useState(null);
   const active = type.is_active !== false;
 
   return (
     <TreeRow
+      level="type"
       label={type.name}
       active={active}
       busy={busy}
       hasChildren
       expanded={expanded}
-      onToggleExpand={() => setExpanded((v) => !v)}
+      onToggleExpand={onToggleExpand}
       onRename={(name) => run(() => renameType(catalog, type[PK.type], name), "เปลี่ยนชื่อเรียบร้อย")}
       renameWarning={RENAME_WARNING}
       onToggleActive={() => run(() => setActive("type", type[PK.type], !active))}
@@ -397,6 +430,8 @@ function TypeNode({ type, catalog, idx, total, busy, run, onMove }) {
             total={type.fields.length}
             busy={busy}
             run={run}
+            expanded={openFieldId === field[PK.field]}
+            onToggleExpand={() => setOpenFieldId(openFieldId === field[PK.field] ? null : field[PK.field])}
             onMove={(dir) => {
               const ids = movedIds(type.fields, "field", fIdx, dir);
               if (ids) run(() => reorderRows("field", ids));
@@ -458,18 +493,20 @@ function AddTypeForm({ category, catalog, allTypes, busy, run }) {
 }
 
 // ===== ชั้นที่ 1: หมวดหมู่งานหลัก (กางลงมาเป็นชิ้นงานย่อย) =====
-function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMove }) {
-  const [expanded, setExpanded] = useState(false);
+// กางได้ทีละ "ชิ้นงานย่อย" ต่อหมวดหมู่หนึ่งอัน (accordion)
+function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
+  const [openTypeId, setOpenTypeId] = useState(null);
   const active = category.is_active !== false;
 
   return (
     <TreeRow
+      level="category"
       label={category.name}
       active={active}
       busy={busy}
       hasChildren
       expanded={expanded}
-      onToggleExpand={() => setExpanded((v) => !v)}
+      onToggleExpand={onToggleExpand}
       onRename={(name) => run(() => renameCategory(catalog, category[PK.category], name), "เปลี่ยนชื่อเรียบร้อย")}
       renameWarning={RENAME_WARNING}
       onToggleActive={() => run(() => setActive("category", category[PK.category], !active))}
@@ -493,6 +530,8 @@ function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMo
             total={category.types.length}
             busy={busy}
             run={run}
+            expanded={openTypeId === type[PK.type]}
+            onToggleExpand={() => setOpenTypeId(openTypeId === type[PK.type] ? null : type[PK.type])}
             onMove={(dir) => {
               const ids = movedIds(category.types, "type", tIdx, dir);
               if (ids) run(() => reorderRows("type", ids));
@@ -514,6 +553,9 @@ export default function CatalogTypesPage({ onChanged }) {
   }, [reload, onChanged]);
   const { busy, msg, run } = useAdminAction(afterChange);
 
+  // กางได้ทีละ "หมวดหมู่" ในหน้าหลัก (accordion) กันหน้ายาวเกินไป
+  const [openCategoryId, setOpenCategoryId] = useState(null);
+
   const allTypes = catalog.flatMap((c) => c.types.map((t) => ({ ...t, categoryName: c.name })));
 
   return (
@@ -521,7 +563,7 @@ export default function CatalogTypesPage({ onChanged }) {
       <AdminHeader
         icon={Layers}
         title="ตั้งค่างาน"
-        subtitle="กดลูกศรเพื่อกางดู หมวดหมู่ → ชิ้นงานย่อย → ช่องรายละเอียด → ตัวเลือก ได้ในหน้าเดียว"
+        subtitle="กดลูกศร ▶ เพื่อกางดู หมวดหมู่ → ชิ้นงานย่อย → ช่องรายละเอียด → ตัวเลือก (เปิดได้ทีละรายการต่อชั้น กดอันใหม่แล้วอันเก่าจะหุบเองอัตโนมัติ)"
       />
 
       <Notice msg={loadError ? { type: "error", text: loadError } : msg} />
@@ -531,10 +573,7 @@ export default function CatalogTypesPage({ onChanged }) {
           กำลังโหลดข้อมูล...
         </p>
       ) : (
-        <Card
-          title="หมวดหมู่งานหลัก"
-          hint="ใช้ 'ปิดใช้งาน' แทนการลบ เพื่อไม่ให้ข้อมูลงานเก่าเสีย"
-        >
+        <Card title="หมวดหมู่งานหลัก" hint="ใช้ 'ปิดใช้งาน' แทนการลบ เพื่อไม่ให้ข้อมูลงานเก่าเสีย">
           {catalog.length === 0 && (
             <p className="mb-3 text-xs" style={{ color: COLORS.textMuted }}>
               ยังไม่มีหมวดหมู่ เพิ่มหมวดแรกได้ด้านล่าง
@@ -551,6 +590,10 @@ export default function CatalogTypesPage({ onChanged }) {
                 total={catalog.length}
                 busy={busy}
                 run={run}
+                expanded={openCategoryId === category[PK.category]}
+                onToggleExpand={() =>
+                  setOpenCategoryId(openCategoryId === category[PK.category] ? null : category[PK.category])
+                }
                 onMove={(dir) => {
                   const ids = movedIds(catalog, "category", idx, dir);
                   if (ids) run(() => reorderRows("category", ids));
