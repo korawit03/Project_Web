@@ -170,18 +170,11 @@ export default function WorkItemCard({
           </div>
         )}
 
-        {/* รายละเอียดหน้างาน (เดิมคือ ระบุตำแหน่งติดตั้ง) */}
+                {/* รายละเอียดหน้างาน (เดิมคือ ระบุตำแหน่งติดตั้ง) */}
         <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: errors.positionNote ? COLORS.red : COLORS.border }}>
           <FieldLabel icon={MapPin} required tone="amber">
             รายละเอียดหน้างาน
           </FieldLabel>
-          <TextInput
-            placeholder="ระบุตำแหน่งติดตั้ง เช่น ห้องนอนชั้น 2 ผนังด้านทิศเหนือ"
-            value={item.positionNote}
-            onChange={(e) => set({ positionNote: e.target.value })}
-            error={errors.positionNote}
-          />
-          {errors.positionNote && <ErrorText>กรุณาระบุรายละเอียดหน้างาน</ErrorText>}
           <PhotoDropzone
             label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง"
             photos={item.positionPhotos}
@@ -189,16 +182,26 @@ export default function WorkItemCard({
             onRemove={(id) => set({ positionPhotos: item.positionPhotos.filter((p) => p.id !== id) })}
             onReorder={(next) => set({ positionPhotos: next })}
           />
+          <TextInput
+            placeholder="ระบุตำแหน่งติดตั้ง เช่น ห้องนอนชั้น 2 ผนังด้านทิศเหนือ"
+            value={item.positionNote}
+            onChange={(e) => set({ positionNote: e.target.value })}
+            error={errors.positionNote}
+          />
+          {errors.positionNote && <ErrorText>กรุณาระบุรายละเอียดหน้างาน</ErrorText>}
+          <textarea
+            rows={2}
+            placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+            value={item.positionDetail || ""}
+            onChange={(e) => set({ positionDetail: e.target.value })}
+            className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
+            style={{ borderColor: COLORS.border }}
+          />
         </div>
 
-        {/* รายละเอียดชิ้นงาน (เดิมคือ รูปถ่ายหน้างาน / ขนาดชิ้นงาน) */}
+               {/* รายละเอียดชิ้นงาน (เดิมคือ รูปถ่ายหน้างาน / ขนาดชิ้นงาน) */}
         <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: COLORS.border }}>
           <FieldLabel icon={Tag}>รายละเอียดชิ้นงาน</FieldLabel>
-          <TextInput
-            placeholder="เช่น ขนาด 80x200 ซม., สีขาวด้าน"
-            value={item.note || ""}
-            onChange={(e) => set({ note: e.target.value })}
-          />
           <PhotoDropzone
             label="รูปประกอบรายละเอียดชิ้นงาน"
             hint="ถ่ายรูปหรือเลือกรูปจากคลังภาพ เพื่อแสดงรายละเอียดและขนาดของชิ้นงาน"
@@ -206,6 +209,19 @@ export default function WorkItemCard({
             onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
             onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
             onReorder={(next) => set({ workPhotos: next })}
+          />
+          <TextInput
+            placeholder="เช่น ขนาด 80x200 ซม., สีขาวด้าน"
+            value={item.note || ""}
+            onChange={(e) => set({ note: e.target.value })}
+          />
+          <textarea
+            rows={2}
+            placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+            value={item.workDetail || ""}
+            onChange={(e) => set({ workDetail: e.target.value })}
+            className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
+            style={{ borderColor: COLORS.border }}
           />
         </div>
       </div>

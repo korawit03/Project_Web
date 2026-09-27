@@ -26,6 +26,8 @@ function newWorkItem() {
                   mainWork: "",
                   answers: {},
                   positionNote: "",
+                  positionDetail: "",
+                  workDetail: "",
                   positionPhotos: [],
                   workPhotos: [],
                   note: "",

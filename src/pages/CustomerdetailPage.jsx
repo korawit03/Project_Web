@@ -15,7 +15,7 @@ import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
 import MapPinPicker from "../components/MapPinPicker.jsx";
 import SuccessBurst from "../components/SuccessBurst.jsx";
-import LocationListEditor, { toLocationRows, validateLocationRows } from "../components/LocationListEditor.jsx";
+import CustomerLocationsPanel from "../components/CustomerLocationsPanel.jsx";
 
 function BackButton({ onClick, children }) {
   return (
@@ -46,9 +46,17 @@ function Header({ title }) {
 
 // หน้า "รายละเอียดลูกค้า" 3 ชั้น:
 //   ชั้น 1 รายชื่อลูกค้า (ชื่อ + เบอร์)
-//   ชั้น 2 ข้อมูลลูกค้า + รายชื่อสถานที่ (แก้ไขได้ที่ชั้นนี้)
+//   ชั้น 2 ข้อมูลลูกค้า + รายชื่อสถานที่ (แก้ไข/ลบทีละสถานที่ได้ตรงนี้เลย)
 //   ชั้น 3 รายละเอียดสถานที่ 1 แห่ง (แผนที่)
-export default function CustomerDetailPage({ customers, loading, updateCustomer, onCustomerUpdated }) {
+export default function CustomerDetailPage({
+  customers,
+  loading,
+  updateCustomerInfo,
+  addLocation,
+  updateLocation,
+  deleteLocation,
+  onCustomerUpdated,
+}) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
@@ -56,9 +64,7 @@ export default function CustomerDetailPage({ customers, loading, updateCustomer,
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [locationRows, setLocationRows] = useState([]);
   const [errors, setErrors] = useState({ name: false, phone: false });
-  const [locationErrors, setLocationErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
@@ -84,9 +90,7 @@ export default function CustomerDetailPage({ customers, loading, updateCustomer,
   const startEdit = () => {
     setName(selected.name || "");
     setPhone(selected.phone || "");
-    setLocationRows(toLocationRows(selected.locations));
     setErrors({ name: false, phone: false });
-    setLocationErrors({});
     setSaveError("");
     setEditing(true);
   };
@@ -95,20 +99,17 @@ export default function CustomerDetailPage({ customers, loading, updateCustomer,
     setEditing(false);
     setSaveError("");
     setErrors({ name: false, phone: false });
-    setLocationErrors({});
   };
 
   const handleSave = async () => {
     const next = { name: !name.trim(), phone: !phone.trim() };
-    const { cleaned, errorKeys, valid } = validateLocationRows(locationRows);
     setErrors(next);
-    setLocationErrors(errorKeys);
-    if (next.name || next.phone || !valid) return;
+    if (next.name || next.phone) return;
 
     setSaving(true);
     setSaveError("");
     try {
-      await updateCustomer(selected.customer_id, { name, phone, locations: cleaned });
+      await updateCustomerInfo(selected.customer_id, { name, phone });
       // โหลดโครงงานใหม่ เพื่อให้ชื่อ/เบอร์ลูกค้าในหน้าอื่นอัปเดตตาม
       onCustomerUpdated?.();
       setEditing(false);
@@ -120,6 +121,22 @@ export default function CustomerDetailPage({ customers, loading, updateCustomer,
     } finally {
       setSaving(false);
     }
+  };
+
+  // ===== จัดการสถานที่ทีละแห่ง =====
+  const handleAddLocation = async (patch) => {
+    await addLocation(selected.customer_id, { ...patch, sortOrder: selected.locations?.length || 0 });
+    onCustomerUpdated?.();
+  };
+
+  const handleUpdateLocation = async (locationId, patch) => {
+    await updateLocation(selected.customer_id, locationId, patch);
+    onCustomerUpdated?.();
+  };
+
+  const handleDeleteLocation = async (locationId) => {
+    await deleteLocation(selected.customer_id, locationId);
+    onCustomerUpdated?.();
   };
 
   // ===== ชั้น 3: รายละเอียดสถานที่ 1 แห่ง =====
@@ -197,39 +214,13 @@ export default function CustomerDetailPage({ customers, loading, updateCustomer,
               </div>
             </div>
 
-            <div className="mt-4 rounded-xl border p-5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-              <p className="flex items-center gap-1.5 text-sm font-semibold mb-3" style={{ color: COLORS.charcoal }}>
-                <MapPin size={14} style={{ color: COLORS.amber }} />
-                สถานที่ ({locations.length})
-              </p>
-
-              {locations.length === 0 ? (
-                <p className="text-xs" style={{ color: COLORS.textMuted }}>ยังไม่มีสถานที่ กด "แก้ไขข้อมูลลูกค้า" เพื่อเพิ่ม</p>
-              ) : (
-                <div className="space-y-2">
-                  {locations.map((l) => {
-                    const hasPin = l.latitude != null && l.longitude != null;
-                    return (
-                      <button
-                        key={l.location_id}
-                        type="button"
-                        onClick={() => setSelectedLocationId(l.location_id)}
-                        className="w-full flex items-center justify-between gap-3 rounded-lg border p-3 text-left transition-shadow hover:shadow-sm"
-                        style={{ borderColor: COLORS.border, background: "#FCFBF8" }}
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: COLORS.charcoal }}>{l.name}</p>
-                          <p className="text-xs" style={{ color: hasPin ? COLORS.green : COLORS.textMuted }}>
-                            {hasPin ? "ปักหมุดแล้ว" : "ยังไม่ได้ปักหมุด"}
-                          </p>
-                        </div>
-                        <ChevronRight size={16} className="shrink-0" style={{ color: COLORS.textMuted }} />
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            <CustomerLocationsPanel
+              locations={locations}
+              onView={(id) => setSelectedLocationId(id)}
+              onAdd={handleAddLocation}
+              onUpdate={handleUpdateLocation}
+              onDelete={handleDeleteLocation}
+            />
 
             <div className="mt-6 flex justify-center">
               <button
@@ -257,14 +248,6 @@ export default function CustomerDetailPage({ customers, loading, updateCustomer,
                 <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} />
                 {errors.phone && <ErrorText>กรุณากรอกเบอร์โทรลูกค้า</ErrorText>}
               </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border p-5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-              <p className="flex items-center gap-1.5 text-sm font-semibold mb-3" style={{ color: COLORS.charcoal }}>
-                <MapPin size={14} style={{ color: COLORS.amber }} />
-                สถานที่
-              </p>
-              <LocationListEditor rows={locationRows} onChange={setLocationRows} errorKeys={locationErrors} />
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-2">

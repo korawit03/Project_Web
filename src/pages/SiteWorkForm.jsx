@@ -19,9 +19,12 @@ function newWorkItem() {
     answers: {},
     itemName: "",
     positionNote: "",
+    positionDetail: "",
+    workDetail: "",
     positionPhotos: [],
     workPhotos: [],
     note: "",
+    
     status: DEFAULT_STATUS,
   };
 }

@@ -66,7 +66,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading, reload: reloadCatalog } = useWorkCatalog();
   const { customers, loading: customersLoading, findOrCreateCustomer, createCustomer,
-    updateCustomerPhone, updateCustomer } = useCustomers();
+    updateCustomerPhone, updateCustomerInfo, addLocation, updateLocation, deleteLocation } = useCustomers();
 
   const loadProjects = useCallback(async () => {
     setLoading(true);
@@ -208,7 +208,10 @@ export default function App() {
             <CustomerDetailPage
               customers={customers}
               loading={customersLoading}
-              updateCustomer={updateCustomer}
+              updateCustomerInfo={updateCustomerInfo}
+              addLocation={addLocation}
+              updateLocation={updateLocation}
+              deleteLocation={deleteLocation}
               onCustomerUpdated={loadProjects}
             />
           ) : activeView === "customer-new" ? (

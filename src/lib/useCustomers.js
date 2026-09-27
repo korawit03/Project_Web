@@ -192,13 +192,86 @@ export function useCustomers() {
     return full;
   }, []);
 
+  // แก้ไขเฉพาะชื่อ-เบอร์ลูกค้า (ไม่แตะสถานที่)
+const updateCustomerInfo = useCallback(async (customerId, { name, phone }) => {
+  const { data, error } = await supabase
+    .from("customers")
+    .update({ name: name.trim(), phone: phone?.trim() || null })
+    .eq("customer_id", customerId)
+    .select(CUSTOMER_SELECT)
+    .single();
+
+  if (error) {
+    console.error("Update customer info failed:", error);
+    throw error;
+  }
+
+  const row = normalize(data);
+  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? row : c))));
+  return row;
+}, []);
+
+// เพิ่มสถานที่ใหม่ 1 แห่ง
+const addLocation = useCallback(async (customerId, { name, latitude, longitude, sortOrder = 0 }) => {
+  const { error } = await supabase.from("customer_locations").insert({
+    customer_id: customerId,
+    name: name.trim(),
+    latitude: latitude ?? null,
+    longitude: longitude ?? null,
+    sort_order: sortOrder,
+  });
+
+  if (error) {
+    console.error("Add location failed:", error);
+    throw error;
+  }
+
+  const full = await fetchCustomer(customerId);
+  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
+  return full;
+}, []);
+
+// แก้ไขสถานที่ 1 แห่ง (ชื่อ/พิกัด)
+const updateLocation = useCallback(async (customerId, locationId, { name, latitude, longitude }) => {
+  const { error } = await supabase
+    .from("customer_locations")
+    .update({ name: name.trim(), latitude: latitude ?? null, longitude: longitude ?? null })
+    .eq("location_id", locationId);
+
+  if (error) {
+    console.error("Update location failed:", error);
+    throw error;
+  }
+
+  const full = await fetchCustomer(customerId);
+  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
+  return full;
+}, []);
+
+// ลบสถานที่ 1 แห่ง
+const deleteLocation = useCallback(async (customerId, locationId) => {
+  const { error } = await supabase.from("customer_locations").delete().eq("location_id", locationId);
+
+  if (error) {
+    console.error("Delete location failed:", error);
+    throw error;
+  }
+
+  const full = await fetchCustomer(customerId);
+  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
+  return full;
+}, []);
   return {
-    customers,
-    loading,
-    loadCustomers,
-    findOrCreateCustomer,
-    updateCustomerPhone,
-    createCustomer,
-    updateCustomer,
-  };
+  customers,
+  loading,
+  loadCustomers,
+  findOrCreateCustomer,
+  updateCustomerPhone,
+  createCustomer,
+  updateCustomer,
+  updateCustomerInfo,
+  addLocation,
+  updateLocation,
+  deleteLocation,
+};
 }
