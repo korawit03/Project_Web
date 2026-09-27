@@ -155,7 +155,16 @@ export default function CustomerDetailPage({
             </p>
             <p className="text-sm font-medium" style={{ color: COLORS.charcoal }}>{selectedLocation.name}</p>
           </div>
-
+          {selectedLocation.address && (
+            <div>
+              <p className="flex items-center gap-1 text-xs mb-0.5" style={{ color: COLORS.textMuted }}>
+                <MapPin size={11} /> รายละเอียดที่อยู่
+              </p>
+              <p className="text-sm font-medium whitespace-pre-line" style={{ color: COLORS.charcoal }}>
+                {selectedLocation.address}
+              </p>
+            </div>
+          )}
           {hasPin ? (
             <MapPinPicker
               key={selectedLocation.location_id}

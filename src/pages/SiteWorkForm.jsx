@@ -120,12 +120,10 @@ export default function SiteWorkForm({
   const addItem = () => setItems((prev) => [...prev, newWorkItem()]);
 
   const resetCustomerSelection = () => {
-    setSelectedCustomerId("");
-    setProjectName("");
-    setPhone("");
-    setShowCreateNew(false);
-    setPhoneSavedMsg("");
-  };
+  setSelectedCustomerId("");
+  setProjectName("");
+  setShowCreateNew(false);
+};
 
   const handleSave = async () => {
     setSubmitted(true);

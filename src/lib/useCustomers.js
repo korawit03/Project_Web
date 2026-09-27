@@ -32,6 +32,7 @@ async function syncLocations(customerId, locations) {
     const l = locations[i];
     const payload = {
       name: l.name.trim(),
+      address: l.address?.trim() || null,
       latitude: l.latitude ?? null,
       longitude: l.longitude ?? null,
       sort_order: i,
@@ -212,10 +213,11 @@ const updateCustomerInfo = useCallback(async (customerId, { name, phone }) => {
 }, []);
 
 // เพิ่มสถานที่ใหม่ 1 แห่ง
-const addLocation = useCallback(async (customerId, { name, latitude, longitude, sortOrder = 0 }) => {
+const addLocation = useCallback(async (customerId, { name, address, latitude, longitude, sortOrder = 0 }) => {
   const { error } = await supabase.from("customer_locations").insert({
     customer_id: customerId,
     name: name.trim(),
+    address: address?.trim() || null,
     latitude: latitude ?? null,
     longitude: longitude ?? null,
     sort_order: sortOrder,
@@ -232,10 +234,10 @@ const addLocation = useCallback(async (customerId, { name, latitude, longitude, 
 }, []);
 
 // แก้ไขสถานที่ 1 แห่ง (ชื่อ/พิกัด)
-const updateLocation = useCallback(async (customerId, locationId, { name, latitude, longitude }) => {
+const updateLocation = useCallback(async (customerId, locationId, { name, address, latitude, longitude }) => {
   const { error } = await supabase
     .from("customer_locations")
-    .update({ name: name.trim(), latitude: latitude ?? null, longitude: longitude ?? null })
+    .update({ name: name.trim(), address: address?.trim() || null, latitude: latitude ?? null, longitude: longitude ?? null })
     .eq("location_id", locationId);
 
   if (error) {

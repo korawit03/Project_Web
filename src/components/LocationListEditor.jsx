@@ -8,15 +8,15 @@ let rowCounter = 1;
 
 // แถวสถานที่ใหม่ (ยังไม่มี location_id)
 export function newLocationRow() {
-  return { key: `loc-new-${Date.now()}-${rowCounter++}`, location_id: null, name: "", latitude: null, longitude: null };
+  return { key: `loc-new-${Date.now()}-${rowCounter++}`, location_id: null, name: "", address: "", latitude: null, longitude: null };
 }
 
-// แปลงสถานที่จากฐานข้อมูล -> แถวในฟอร์ม
 export function toLocationRows(locations) {
   return (locations || []).map((l) => ({
     key: `loc-${l.location_id}`,
     location_id: l.location_id,
     name: l.name || "",
+    address: l.address || "",
     latitude: l.latitude ?? null,
     longitude: l.longitude ?? null,
   }));
@@ -78,6 +78,18 @@ export default function LocationListEditor({ rows, onChange, errorKeys = {} }) {
               error={errorKeys[row.key]}
             />
             {errorKeys[row.key] && <ErrorText>กรุณาระบุชื่อสถานที่</ErrorText>}
+          </div>
+
+          <div>
+            <FieldLabel icon={MapPin}>รายละเอียดที่อยู่เพิ่มเติม</FieldLabel>
+            <textarea
+              rows={2}
+              placeholder="เช่น บ้านเลขที่ 99/1 ซอย... ตำบล... อำเภอ..."
+              value={row.address}
+              onChange={(e) => updateRow(row.key, { address: e.target.value })}
+              className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
+              style={{ borderColor: COLORS.border }}
+            />
           </div>
 
           <div>
