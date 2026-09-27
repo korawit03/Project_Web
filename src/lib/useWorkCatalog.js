@@ -21,10 +21,11 @@ function buildCatalog(rows) {
             fields: (wt.work_type_fields || [])
               .slice()
               .sort((a, b) => a.sort_order - b.sort_order)
-              .map((f) => ({
+                            .map((f) => ({
                 key: f.field_key,
                 label: f.label,
                 dependsOn: f.depends_on || null,
+                dependsOnValue: f.depends_on_value || null,
                 options: (f.work_type_field_options || [])
                   .slice()
                   .sort((a, b) => a.sort_order - b.sort_order)
@@ -52,7 +53,7 @@ export function useWorkCatalog() {
         work_types (
           name, sort_order, is_active,
           work_type_fields (
-            field_key, label, depends_on, sort_order, is_active,
+            field_key, label, depends_on, depends_on_value, sort_order, is_active,
             work_type_field_options ( value, sort_order, is_active )
           )
         )

@@ -5,7 +5,11 @@ export const isNoneValue = (v) => typeof v === "string" && v.trim().startsWith("
 export function isFieldVisible(field, answers = {}) {
   if (!field.dependsOn) return true;
   const parent = answers[field.dependsOn];
-  return Boolean(parent) && !isNoneValue(parent);
+  if (!parent) return false;
+  // ถ้าตั้งค่าเจาะจงไว้ (เช่น "ใส") ต้องตอบตรงตัวเป๊ะถึงจะโชว์
+  if (field.dependsOnValue) return parent === field.dependsOnValue;
+  // ถ้าไม่เจาะจง ใช้กติกาเดิม: โชว์ทุกครั้งที่ตอบ ยกเว้นตอบ "ไม่มี..."
+  return !isNoneValue(parent);
 }
 
 export function validateItem(item, workCatalog) {

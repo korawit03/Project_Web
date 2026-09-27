@@ -11,7 +11,7 @@ import {
   renameType,
   addField,
   renameField,
-  setFieldDependsOn,
+  setFieldCondition,
   assertCanDisableField,
   wouldCycle,
   addOption,
@@ -29,8 +29,6 @@ const RENAME_WARNING =
 const RENAME_WARNING_OPTION =
   "ชิ้นงานที่บันทึกไว้แล้วจะยังเก็บค่าเดิมไว้ ไม่เปลี่ยนตาม ต้องการเปลี่ยนชื่อตัวเลือกใช่ไหม?";
 
-// เส้นสี + ขนาดตัวอักษรต่างกันในแต่ละชั้น เพื่อให้แยกง่ายด้วยตาว่าอยู่ชั้นไหน
-// หมวดหมู่ (ใหญ่/หนาสุด) > ชิ้นงานย่อย > ช่องรายละเอียด > ตัวเลือก (เล็ก/บางสุด)
 const LEVEL_STYLE = {
   category: { accent: COLORS.amber, text: "text-[15px] font-bold" },
   type: { accent: COLORS.green, text: "text-sm font-semibold" },
@@ -40,7 +38,7 @@ const LEVEL_STYLE = {
 
 // ===== แถวเดียวในต้นไม้ (ใช้ซ้ำทุกชั้น) =====
 function TreeRow({
-  level, // "category" | "type" | "field" | "option"
+  level,
   label,
   active,
   extra,
@@ -157,11 +155,7 @@ function TreeRow({
               <IconBtnLocal title="แก้ชื่อ" onClick={startEdit} disabled={busy}>
                 <Pencil size={13} />
               </IconBtnLocal>
-              <IconBtnLocal
-                title={active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
-                onClick={onToggleActive}
-                disabled={busy}
-              >
+              <IconBtnLocal title={active ? "ปิดใช้งาน" : "เปิดใช้งาน"} onClick={onToggleActive} disabled={busy}>
                 <Power size={14} color={active ? COLORS.red : COLORS.green} />
               </IconBtnLocal>
             </>
@@ -194,7 +188,7 @@ function IconBtnLocal({ onClick, disabled, title, children }) {
   );
 }
 
-// ===== ชั้นที่ 4: ตัวเลือก (ใบสุดท้าย ไม่มีลูก) =====
+// ===== ชั้นที่ 4: ตัวเลือก =====
 function OptionNode({ option, field, idx, total, busy, run, onMove }) {
   const active = option.is_active !== false;
   const toggleActive = () =>
@@ -221,22 +215,24 @@ function OptionNode({ option, field, idx, total, busy, run, onMove }) {
 }
 
 // ===== ชั้นที่ 3: ช่องรายละเอียด (กางลงมาเป็นตัวเลือก) =====
+// dependsSelect มี 2 dropdown: (1) ขึ้นกับช่องไหน (2) เฉพาะตอบว่าอะไร (เว้นว่าง = ทุกคำตอบที่ไม่ใช่ "ไม่มี...")
 function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
   const active = field.is_active !== false;
 
   const candidates = type.fields.filter(
     (o) => o.field_key !== field.field_key && !wouldCycle(type.fields, field.field_key, o.field_key)
   );
+  const parentField = field.depends_on ? type.fields.find((o) => o.field_key === field.depends_on) : null;
 
   const dependsSelect = (
     <div className="flex flex-wrap items-center gap-2">
       <select
         value={field.depends_on || ""}
         disabled={busy}
-        onChange={(e) => run(() => setFieldDependsOn(type, field, e.target.value), "บันทึกเงื่อนไขเรียบร้อย")}
+        onChange={(e) => run(() => setFieldCondition(type, field, e.target.value, null), "บันทึกเงื่อนไขเรียบร้อย")}
         className="max-w-44 rounded-md border bg-white px-2 py-1 text-xs outline-none"
         style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
-        title="แสดงช่องนี้เมื่อเลือกช่องอื่นแล้ว (และไม่ใช่ 'ไม่มี...')"
+        title="แสดงช่องนี้เมื่อเลือกช่องอื่นแล้ว"
       >
         <option value="">แสดงเสมอ</option>
         {candidates.map((o) => (
@@ -248,6 +244,28 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
           <option value={field.depends_on}>{field.depends_on} (ไม่พบช่องนี้)</option>
         )}
       </select>
+
+      {parentField && (
+        <select
+          value={field.depends_on_value || ""}
+          disabled={busy}
+          onChange={(e) =>
+            run(() => setFieldCondition(type, field, field.depends_on, e.target.value || null), "บันทึกเงื่อนไขเรียบร้อย")
+          }
+          className="max-w-44 rounded-md border bg-white px-2 py-1 text-xs outline-none"
+          style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
+          title={`เจาะจงว่า "${parentField.label}" ต้องตอบอะไรถึงจะโชว์ช่องนี้`}
+        >
+          <option value="">ทุกคำตอบ (ไม่ใช่ "ไม่มี...")</option>
+          {parentField.options
+            .filter((o) => o.is_active !== false)
+            .map((o) => (
+              <option key={o[PK.option]} value={o.value}>
+                เฉพาะตอบ: {o.value}
+              </option>
+            ))}
+        </select>
+      )}
     </div>
   );
 
@@ -306,19 +324,18 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
   );
 }
 
-// สร้างรหัสช่อง (field_key) ให้อัตโนมัติ ไม่ต้องให้ผู้ใช้กรอกเอง
-// สร้างรหัสช่อง (field_key) ให้อัตโนมัติ ไม่ต้องให้ผู้ใช้กรอกเอง
 function generateFieldKey() {
   return `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-// ฟอร์มเพิ่มช่องรายละเอียดใหม่ (อยู่ใต้ชิ้นงานย่อยแต่ละอัน)
-// มีตัวเลือก "แสดงช่องนี้เมื่อ" ให้ผูกเงื่อนไขกับช่องอื่นได้ตั้งแต่ตอนสร้าง
-// เช่น ช่อง "สีกระจก" ตั้งให้แสดงเมื่อเลือก "มีกระจกไหม" แล้ว (และค่าที่เลือกไม่ขึ้นต้นด้วย "ไม่มี")
+// ฟอร์มเพิ่มช่องรายละเอียดใหม่: มี dropdown "แสดงช่องนี้เมื่อ" + dropdown ย่อย "เฉพาะตอบว่าอะไร"
 function AddFieldForm({ type, busy, run }) {
   const [label, setLabel] = useState("");
   const [dependsOn, setDependsOn] = useState("");
+  const [dependsOnValue, setDependsOnValue] = useState("");
   const [optionsText, setOptionsText] = useState("");
+
+  const parentField = dependsOn ? type.fields.find((f) => f.field_key === dependsOn) : null;
 
   const handleAdd = async () => {
     const ok = await run(
@@ -327,6 +344,7 @@ function AddFieldForm({ type, busy, run }) {
           label,
           key: generateFieldKey(),
           dependsOn,
+          dependsOnValue,
           options: optionsText.split("\n"),
         }),
       "เพิ่มช่องรายละเอียดเรียบร้อย"
@@ -334,6 +352,7 @@ function AddFieldForm({ type, busy, run }) {
     if (ok) {
       setLabel("");
       setDependsOn("");
+      setDependsOnValue("");
       setOptionsText("");
     }
   };
@@ -348,18 +367,44 @@ function AddFieldForm({ type, busy, run }) {
       {type.fields.filter((f) => f.is_active !== false).length > 0 && (
         <div>
           <FieldLabel>แสดงช่องนี้เมื่อ</FieldLabel>
-          <PlainSelect value={dependsOn} onChange={(e) => setDependsOn(e.target.value)} placeholder="แสดงเสมอ (ไม่ผูกเงื่อนไข)">
+          <PlainSelect
+            value={dependsOn}
+            onChange={(e) => {
+              setDependsOn(e.target.value);
+              setDependsOnValue("");
+            }}
+            placeholder="แสดงเสมอ (ไม่ผูกเงื่อนไข)"
+          >
             {type.fields
               .filter((f) => f.is_active !== false)
               .map((f) => (
                 <option key={f.field_key} value={f.field_key}>
-                  เลือก "{f.label}" แล้ว (และไม่ใช่ตัวเลือกที่ขึ้นต้นด้วย "ไม่มี")
+                  เลือก "{f.label}" แล้ว
                 </option>
               ))}
           </PlainSelect>
-          <p className="mt-1 text-xs" style={{ color: COLORS.textMuted }}>
-            ถ้าอยากให้ช่องนี้โผล่เฉพาะบางกรณี (เช่น "สีกระจก" โผล่เมื่อ "มีกระจกไหม" ตอบว่า "มี") ให้เลือกช่องแม่ตรงนี้
-          </p>
+
+          {parentField && (
+            <div className="mt-2">
+              <PlainSelect
+                value={dependsOnValue}
+                onChange={(e) => setDependsOnValue(e.target.value)}
+                placeholder={`ทุกคำตอบของ "${parentField.label}" (ไม่ใช่ "ไม่มี...")`}
+              >
+                {parentField.options
+                  .filter((o) => o.is_active !== false)
+                  .map((o) => (
+                    <option key={o[PK.option]} value={o.value}>
+                      เฉพาะตอบ: {o.value}
+                    </option>
+                  ))}
+              </PlainSelect>
+              <p className="mt-1 text-xs" style={{ color: COLORS.textMuted }}>
+                ไม่เลือก = โชว์ทุกครั้งที่ "{parentField.label}" มีคำตอบ (ยกเว้นตอบ "ไม่มี...") <br />
+                เลือกคำตอบใดคำตอบหนึ่ง = โชว์เฉพาะตอนตอบแบบนั้นเท่านั้น เช่น เลือก "ใส" ช่องนี้จะโผล่เฉพาะตอนตอบ "ใส"
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -392,8 +437,7 @@ function AddFieldForm({ type, busy, run }) {
   );
 }
 
-// ===== ชั้นที่ 2: ชิ้นงานย่อย (กางลงมาเป็นช่องรายละเอียด) =====
-// กางได้ทีละ "ช่องรายละเอียด" ต่อชิ้นงานย่อยหนึ่งอัน (accordion) กันหน้ายาวเกินไป
+// ===== ชั้นที่ 2: ชิ้นงานย่อย =====
 function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
   const [openFieldId, setOpenFieldId] = useState(null);
   const active = type.is_active !== false;
@@ -444,7 +488,6 @@ function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onTo
   );
 }
 
-// ฟอร์มเพิ่มชิ้นงานย่อยใหม่ (อยู่ใต้หมวดหมู่แต่ละอัน คัดลอกช่องรายละเอียดจากชิ้นงานอื่นได้)
 function AddTypeForm({ category, catalog, allTypes, busy, run }) {
   const [name, setName] = useState("");
   const [copyFromId, setCopyFromId] = useState("");
@@ -492,8 +535,7 @@ function AddTypeForm({ category, catalog, allTypes, busy, run }) {
   );
 }
 
-// ===== ชั้นที่ 1: หมวดหมู่งานหลัก (กางลงมาเป็นชิ้นงานย่อย) =====
-// กางได้ทีละ "ชิ้นงานย่อย" ต่อหมวดหมู่หนึ่งอัน (accordion)
+// ===== ชั้นที่ 1: หมวดหมู่งานหลัก =====
 function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
   const [openTypeId, setOpenTypeId] = useState(null);
   const active = category.is_active !== false;
@@ -544,7 +586,6 @@ function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMo
   );
 }
 
-// ===== หน้าเดียวรวมทุกชั้น =====
 export default function CatalogTypesPage({ onChanged }) {
   const { catalog, loading, loadError, reload } = useCatalogAdmin();
   const afterChange = useCallback(async () => {
@@ -553,7 +594,6 @@ export default function CatalogTypesPage({ onChanged }) {
   }, [reload, onChanged]);
   const { busy, msg, run } = useAdminAction(afterChange);
 
-  // กางได้ทีละ "หมวดหมู่" ในหน้าหลัก (accordion) กันหน้ายาวเกินไป
   const [openCategoryId, setOpenCategoryId] = useState(null);
 
   const allTypes = catalog.flatMap((c) => c.types.map((t) => ({ ...t, categoryName: c.name })));
@@ -563,7 +603,7 @@ export default function CatalogTypesPage({ onChanged }) {
       <AdminHeader
         icon={Layers}
         title="ตั้งค่างาน"
-        subtitle="กดลูกศร ▶ เพื่อกางดู หมวดหมู่ → ชิ้นงานย่อย → ช่องรายละเอียด → ตัวเลือก (เปิดได้ทีละรายการต่อชั้น กดอันใหม่แล้วอันเก่าจะหุบเองอัตโนมัติ)"
+        subtitle="กดลูกศร ▶ เพื่อกางดู หมวดหมู่ → ชิ้นงานย่อย → ช่องรายละเอียด → ตัวเลือก"
       />
 
       <Notice msg={loadError ? { type: "error", text: loadError } : msg} />

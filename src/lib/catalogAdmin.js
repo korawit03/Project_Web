@@ -263,10 +263,11 @@ export async function addField(type, input) {
   });
   if (options.length === 0) throw userError("ต้องมีตัวเลือกอย่างน้อย 1 ตัวเลือก (พิมพ์ 1 บรรทัดต่อ 1 ตัวเลือก)");
 
-  const dependsOn = input.dependsOn || null;
+    const dependsOn = input.dependsOn || null;
   if (dependsOn && !type.fields.some((f) => f.field_key === dependsOn)) {
     throw userError("ช่องที่เลือกให้ขึ้นกับ ไม่มีอยู่ในชิ้นงานนี้");
   }
+  const dependsOnValue = dependsOn ? input.dependsOnValue || null : null;
 
   const row = await one(
     supabase
@@ -276,6 +277,7 @@ export async function addField(type, input) {
         field_key: key,
         label,
         depends_on: dependsOn,
+        depends_on_value: dependsOnValue,
         sort_order: nextOrder(type.fields),
       })
       .select()
@@ -297,12 +299,19 @@ export async function renameField(id, label) {
   await mutate(supabase.from(TABLE.field).update({ label: clean }).eq(PK.field, id));
 }
 
-export async function setFieldDependsOn(type, field, dependsOn) {
+// ตั้งเงื่อนไขการแสดงช่อง: ขึ้นกับช่องไหน + ต้องเลือกค่าอะไรของช่องนั้น (dependsOnValue = null คือ "ทุกค่าที่ไม่ใช่ไม่มี...")
+export async function setFieldCondition(type, field, dependsOn, dependsOnValue) {
   if (dependsOn && wouldCycle(type.fields, field.field_key, dependsOn)) {
     throw userError("เลือกไม่ได้ เพราะช่องจะขึ้นกับกันเองเป็นวงกลม");
   }
   await mutate(
-    supabase.from(TABLE.field).update({ depends_on: dependsOn || null }).eq(PK.field, field[PK.field])
+    supabase
+      .from(TABLE.field)
+      .update({
+        depends_on: dependsOn || null,
+        depends_on_value: dependsOn ? dependsOnValue || null : null,
+      })
+      .eq(PK.field, field[PK.field])
   );
 }
 
