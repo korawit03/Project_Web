@@ -188,8 +188,9 @@ function IconBtnLocal({ onClick, disabled, title, children }) {
   );
 }
 
-// ===== ชั้นที่ 4: ตัวเลือก =====
-function OptionNode({ option, field, idx, total, busy, run, onMove }) {
+// ===== ชั้นที่ 4: ตัวเลือก (กางลงมาเจอช่องรายละเอียดที่ผูกกับตัวเลือกนี้โดยเฉพาะ) =====
+function OptionNode({ option, field, type, idx, total, busy, run, onMove, childFields = [], expanded, onToggleExpand }) {
+  const [openChildFieldId, setOpenChildFieldId] = useState(null);
   const active = option.is_active !== false;
   const toggleActive = () =>
     run(async () => {
@@ -203,6 +204,9 @@ function OptionNode({ option, field, idx, total, busy, run, onMove }) {
       label={option.value}
       active={active}
       busy={busy}
+      hasChildren={childFields.length > 0}
+      expanded={expanded}
+      onToggleExpand={onToggleExpand}
       onRename={(value) => run(() => renameOption(field, option[PK.option], value), "เปลี่ยนตัวเลือกเรียบร้อย")}
       renameWarning={RENAME_WARNING_OPTION}
       onToggleActive={toggleActive}
@@ -210,14 +214,44 @@ function OptionNode({ option, field, idx, total, busy, run, onMove }) {
       onMoveDown={() => onMove(1)}
       canMoveUp={idx > 0}
       canMoveDown={idx < total - 1}
-    />
+    >
+      {childFields.length === 0 && (
+        <p className="text-xs" style={{ color: COLORS.textMuted }}>
+          ยังไม่มีช่องรายละเอียดที่ผูกกับตัวเลือกนี้
+        </p>
+      )}
+      <div className="space-y-2">
+        {childFields.map((cf, cfIdx) => (
+          <FieldNode
+            key={cf[PK.field]}
+            field={cf}
+            type={type}
+            idx={cfIdx}
+            total={childFields.length}
+            busy={busy}
+            run={run}
+            expanded={openChildFieldId === cf[PK.field]}
+            onToggleExpand={() => setOpenChildFieldId(openChildFieldId === cf[PK.field] ? null : cf[PK.field])}
+            onMove={(dir) => {
+              const ids = movedIds(childFields, "field", cfIdx, dir);
+              if (ids) run(() => reorderRows("field", ids));
+            }}
+          />
+        ))}
+      </div>
+    </TreeRow>
   );
 }
 
 // ===== ชั้นที่ 3: ช่องรายละเอียด (กางลงมาเป็นตัวเลือก) =====
 // dependsSelect มี 2 dropdown: (1) ขึ้นกับช่องไหน (2) เฉพาะตอบว่าอะไร (เว้นว่าง = ทุกคำตอบที่ไม่ใช่ "ไม่มี...")
 function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
+  const [openOptionId, setOpenOptionId] = useState(null);
   const active = field.is_active !== false;
+
+  // ช่องรายละเอียดที่ผูกกับ "ตัวเลือกใดตัวเลือกหนึ่ง" ของช่องนี้โดยเฉพาะ (มีทั้ง depends_on และ depends_on_value ตรงกัน)
+  const childFieldsOf = (optionValue) =>
+    type.fields.filter((f) => f.depends_on === field.field_key && f.depends_on_value === optionValue);
 
   const candidates = type.fields.filter(
     (o) => o.field_key !== field.field_key && !wouldCycle(type.fields, field.field_key, o.field_key)
@@ -297,16 +331,20 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
           ช่องนี้ยังไม่มีตัวเลือก
         </p>
       )}
-      <div className="space-y-2">
+            <div className="space-y-2">
         {field.options.map((option, oIdx) => (
           <OptionNode
             key={option[PK.option]}
             option={option}
             field={field}
+            type={type}
             idx={oIdx}
             total={field.options.length}
             busy={busy}
             run={run}
+            childFields={childFieldsOf(option.value)}
+            expanded={openOptionId === option[PK.option]}
+            onToggleExpand={() => setOpenOptionId(openOptionId === option[PK.option] ? null : option[PK.option])}
             onMove={(dir) => {
               const ids = movedIds(field.options, "option", oIdx, dir);
               if (ids) run(() => reorderRows("option", ids));
@@ -315,7 +353,7 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
         ))}
       </div>
       <AddInline
-        placeholder="ตัวเลือกใหม่ เช่น ใส"
+        placeholder="ตัวเลือกใหม่"
         buttonLabel="เพิ่มตัวเลือก"
         busy={busy}
         onAdd={(value) => run(() => addOption(field, value), "เพิ่มตัวเลือกเรียบร้อย")}
@@ -441,6 +479,8 @@ function AddFieldForm({ type, busy, run }) {
 function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onToggleExpand }) {
   const [openFieldId, setOpenFieldId] = useState(null);
   const active = type.is_active !== false;
+  // ช่องที่ถูกผูกกับตัวเลือกใดตัวเลือกหนึ่งแบบเจาะจง (มี depends_on_value) จะไปโชว์ซ้อนใต้ตัวเลือกนั้นแทน ไม่โชว์แบนๆ ตรงนี้
+  const topFields = type.fields.filter((f) => !(f.depends_on && f.depends_on_value));
 
   return (
     <TreeRow
@@ -459,25 +499,25 @@ function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onTo
       canMoveUp={idx > 0}
       canMoveDown={idx < total - 1}
     >
-      {type.fields.length === 0 && (
+            {topFields.length === 0 && (
         <p className="text-xs" style={{ color: COLORS.textMuted }}>
           ชิ้นงานนี้ยังไม่มีช่องรายละเอียด
         </p>
       )}
       <div className="space-y-2">
-        {type.fields.map((field, fIdx) => (
+        {topFields.map((field, fIdx) => (
           <FieldNode
             key={field[PK.field]}
             field={field}
             type={type}
             idx={fIdx}
-            total={type.fields.length}
+            total={topFields.length}
             busy={busy}
             run={run}
             expanded={openFieldId === field[PK.field]}
             onToggleExpand={() => setOpenFieldId(openFieldId === field[PK.field] ? null : field[PK.field])}
             onMove={(dir) => {
-              const ids = movedIds(type.fields, "field", fIdx, dir);
+              const ids = movedIds(topFields, "field", fIdx, dir);
               if (ids) run(() => reorderRows("field", ids));
             }}
           />
