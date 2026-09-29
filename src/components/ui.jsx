@@ -114,5 +114,34 @@ export function StatusSelect({ value, onChange }) {
         </option>
       ))}
     </select>
+  ); 
+}
+// ปุ่มเลือกสถานะแบบกดครั้งเดียว (แทน dropdown)
+export function StatusSegment({ value, onChange }) {
+  const current = value || DEFAULT_STATUS;
+  return (
+    <div
+      className="inline-flex overflow-hidden rounded-full border"
+      style={{ borderColor: COLORS.border }}
+    >
+      {STATUS_OPTIONS.map((s) => {
+        const active = s.value === current;
+        return (
+          <button
+            key={s.value}
+            type="button"
+            onClick={() => !active && onChange(s.value)}
+            className="px-3 py-1.5 text-xs transition-colors"
+            style={{
+              background: active ? s.bg : "white",
+              color: active ? s.color : COLORS.textMuted,
+              fontWeight: active ? 700 : 500,
+            }}
+          >
+            {s.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }

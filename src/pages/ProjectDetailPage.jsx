@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from "react";
 import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon, History } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
-import { countByStatus } from "../lib/status.js";
-import { StatusBadge, StatusSelect } from "../components/ui.jsx";
+import { countByStatus, getStatusMeta } from "../lib/status.js";
+import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
 
 function getOverallStatus(items) {
   const list = items || [];
@@ -69,7 +69,7 @@ function StatusCell({ items }) {
 
 export default function ProjectDetailPage({ projects, loading, onItemStatusChange, workCatalog = {} }) {
   const [search, setSearch] = useState("");
-  const [selectedKey, setSelectedKey] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -93,13 +93,20 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
     );
   }, [groups, search]);
 
-  const selected = groups.find((g) => g.key === selectedKey) || null;
-  const doneItems = selected
-    ? selected.projects.flatMap((p) =>
-      p.items
-        .filter((it) => it.status === "done")
-        .map((it) => ({ ...it, projectName: p.projectName }))
-    )
+  // หาโครงงานที่เลือก + ลูกค้าเจ้าของโครงงานนั้น
+  const selectedProject = projects.find((p) => p.id === selectedProjectId) || null;
+  const selected = selectedProject
+    ? {
+      key: selectedProject.customerId || `unassigned-${selectedProject.customerName}`,
+      name: selectedProject.customerName,
+      projects: [selectedProject], // มีโครงงานเดียว
+    }
+    : null;
+
+  const doneItems = selectedProject
+    ? selectedProject.items
+      .filter((it) => it.status === "done")
+      .map((it) => ({ ...it, projectName: selectedProject.projectName }))
     : [];
   if (selected) {
     const allItems = selected.projects.flatMap((p) => p.items);
@@ -107,11 +114,11 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
-        <BackButton onClick={() => setSelectedKey(null)}>กลับไปดูรายชื่อลูกค้า</BackButton>
+        <BackButton onClick={() => setSelectedProjectId(null)}>กลับไปดูรายการโครงงาน</BackButton>
 
         <Header
-          title={selected.name}
-          subtitle={total > 0 ? `${selected.projects.length} โครงงาน · เสร็จแล้ว ${done} จาก ${total} ชิ้นงาน` : undefined}
+          title={selectedProject.projectName || "(ไม่ระบุชื่อโครงงาน)"}
+          subtitle={`ลูกค้า: ${selected.name}${total > 0 ? ` · เสร็จแล้ว ${done} จาก ${total} ชิ้นงาน` : ""}`}
         />
         <div className="mb-4 flex justify-end">
           <button
@@ -145,12 +152,30 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
         <div className="space-y-6">
           {selected.projects.map((p) => (
             <section key={p.id}>
-              <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold" style={{ color: COLORS.charcoal }}>
-                <Layers size={14} style={{ color: COLORS.amber }} />
-                <span className="truncate">
-                  {selected.name} - {p.projectName || "(ไม่ระบุชื่อโครงงาน)"}
-                </span>
-              </h2>
+              {(() => {
+                const { done, total } = getOverallStatus(p.items);
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <div className="mb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="flex min-w-0 items-center gap-1.5 text-sm font-bold" style={{ color: COLORS.charcoal }}>
+                        <Layers size={14} className="shrink-0" style={{ color: COLORS.amber }} />
+                        <span className="truncate">{p.projectName || "(ไม่ระบุชื่อโครงงาน)"}</span>
+                      </h2>
+                      {total > 0 && (
+                        <span className="shrink-0 text-xs" style={{ color: COLORS.textMuted }}>
+                          เสร็จ {done}/{total} ชิ้น
+                        </span>
+                      )}
+                    </div>
+                    {total > 0 && (
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full" style={{ background: "#EEECE6" }}>
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: COLORS.green }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {p.items.length === 0 ? (
                 <p className="rounded-xl border p-4 text-sm" style={{ borderColor: COLORS.border, background: COLORS.surface, color: COLORS.textMuted }}>
@@ -170,9 +195,9 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                       <div
                         key={item.id}
                         className="rounded-xl border overflow-hidden"
-                        style={{ borderColor: COLORS.border, background: COLORS.surface }}
+                        style={{ borderColor: COLORS.border, background: COLORS.surface, borderLeft: `4px solid ${getStatusMeta(item.status).color}`, }}
                       >
-                        <div className="flex items-center justify-between gap-3 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                           <button
                             type="button"
                             onClick={() => setExpandedItemId(isOpen ? null : item.id)}
@@ -196,25 +221,28 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                               {item.positionNote && (
                                 <p className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
                                   <MapPin size={11} className="shrink-0" />
-                                  <span className="truncate">{item.positionNote}</span>
+                                  <span className="truncate">ตำแหน่ง: {item.positionNote}</span>
                                 </p>
                               )}
                             </div>
-                            {isOpen ? (
-                              <ChevronUp size={16} className="shrink-0" style={{ color: COLORS.textMuted }} />
-                            ) : (
-                              <ChevronDown size={16} className="shrink-0" style={{ color: COLORS.textMuted }} />
-                            )}
+
+                            {/* แทนที่ chevron เดิมทั้งสองฝั่ง ด้วยบล็อกนี้ */}
+                            <span className="flex shrink-0 items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
+                              <span className="hidden sm:inline">{isOpen ? "ซ่อน" : "ดูรายละเอียด"}</span>
+                              {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </span>
                           </button>
 
-                          {onItemStatusChange ? (
-                            <StatusSelect
-                              value={item.status}
-                              onChange={(e) => onItemStatusChange(p.id, item.id, e.target.value)}
-                            />
-                          ) : (
-                            <StatusBadge status={item.status} />
-                          )}
+                          <div className="w-full sm:w-auto">
+                            {onItemStatusChange ? (
+                              <StatusSegment
+                                value={item.status}
+                                onChange={(value) => onItemStatusChange(p.id, item.id, value)}
+                              />
+                            ) : (
+                              <StatusBadge status={item.status} />
+                            )}
+                          </div>
                         </div>
 
                         {isOpen && (
@@ -350,6 +378,7 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
             g.projects.map((p, pi) => (
               <div
                 key={`${g.key}-${p.id}`}
+                onClick={() => setSelectedProjectId(p.id)}
                 className={`grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[1fr_1.2fr_9rem_2.5rem] ${gi > 0 || pi > 0 ? "border-t" : ""}`}
                 style={{ borderColor: COLORS.border }}
               >
@@ -362,8 +391,8 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
 
                 <button
                   type="button"
-                  onClick={() => setSelectedKey(g.key)}
-                  aria-label={`ดูรายละเอียดงานของ ${g.name}`}
+                  onClick={() => setSelectedProjectId(p.id)}
+                  aria-label={`ดูรายละเอียดงาน ${p.projectName || g.name}`}
                   className="flex h-8 w-8 items-center justify-center justify-self-end rounded-md border cursor-pointer hover:bg-gray-50 md:order-last"
                   style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
                 >
