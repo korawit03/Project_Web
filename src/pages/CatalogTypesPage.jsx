@@ -297,8 +297,7 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
       <select
         value={field.depends_on || ""}
         disabled={busy}
-        onChange={(e) => run(() => setFieldCondition(type, field, e.target.value, null), "บันทึกเงื่อนไขเรียบร้อย")}
-        className="max-w-44 rounded-md border bg-white px-2 py-1 text-xs outline-none"
+        onChange={(e) => run(() => setFieldCondition(type, f, e.target.value, null), "บันทึกเงื่อนไขเรียบร้อย")} className="max-w-44 rounded-md border bg-white px-2 py-1 text-xs outline-none"
         style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
         title="แสดงช่องนี้เมื่อเลือกช่องอื่นแล้ว"
       >
@@ -650,7 +649,7 @@ function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMo
   return (
     <TreeRow
       level="category"
-      label={type.name}
+      label={category.name}
       badge={`${category.types.length} ชิ้นงานย่อย`}
       active={active}
       busy={busy}
