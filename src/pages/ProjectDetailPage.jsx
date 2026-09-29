@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon } from "lucide-react";
+import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon, History } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus } from "../lib/status.js";
 import { StatusBadge, StatusSelect } from "../components/ui.jsx";
@@ -71,6 +71,7 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
   const [search, setSearch] = useState("");
   const [selectedKey, setSelectedKey] = useState(null);
   const [expandedItemId, setExpandedItemId] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const groups = useMemo(() => {
     const map = new Map();
@@ -93,7 +94,13 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
   }, [groups, search]);
 
   const selected = groups.find((g) => g.key === selectedKey) || null;
-
+  const doneItems = selected
+    ? selected.projects.flatMap((p) =>
+      p.items
+        .filter((it) => it.status === "done")
+        .map((it) => ({ ...it, projectName: p.projectName }))
+    )
+    : [];
   if (selected) {
     const allItems = selected.projects.flatMap((p) => p.items);
     const { done, total } = getOverallStatus(allItems);
@@ -106,7 +113,35 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
           title={selected.name}
           subtitle={total > 0 ? `${selected.projects.length} โครงงาน · เสร็จแล้ว ${done} จาก ${total} ชิ้นงาน` : undefined}
         />
+        <div className="mb-4 flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            className="flex items-center gap-1.5 text-xs font-medium"
+            style={{ color: COLORS.amberDark }}
+          >
+            <History size={13} />
+            {showHistory ? "ซ่อนประวัติงานที่เสร็จแล้ว" : `ดูประวัติงานที่เสร็จแล้ว (${doneItems.length})`}
+          </button>
+        </div>
 
+        {showHistory && (
+          <div className="mb-6 rounded-xl border p-4 space-y-2" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
+            {doneItems.length === 0 ? (
+              <p className="text-xs" style={{ color: COLORS.textMuted }}>ยังไม่มีชิ้นงานที่เสร็จแล้ว</p>
+            ) : (
+              doneItems.map((it) => (
+                <div key={it.id} className="flex items-center justify-between gap-2 text-xs">
+                  <span style={{ color: COLORS.charcoal }}>
+                    {it.itemName || it.mainWork || "(ไม่ระบุชิ้นงาน)"}
+                    <span style={{ color: COLORS.textMuted }}> · {it.projectName || "(ไม่ระบุชื่อโครงงาน)"}</span>
+                  </span>
+                  <StatusBadge status={it.status} />
+                </div>
+              ))
+            )}
+          </div>
+        )}
         <div className="space-y-6">
           {selected.projects.map((p) => (
             <section key={p.id}>
@@ -311,16 +346,11 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
             <span />
           </div>
 
-          {visibleGroups.map((g, gi) => {
-            const allItems = g.projects.flatMap((p) => p.items);
-            const projectLabel =
-              g.projects.length === 1
-                ? g.projects[0].projectName || "(ไม่ระบุชื่อโครงงาน)"
-                : `${g.projects.length} โครงงาน`;
-            return (
+          {visibleGroups.map((g, gi) => (
+            g.projects.map((p, pi) => (
               <div
-                key={g.key}
-                className={`grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[1fr_1.2fr_9rem_2.5rem] ${gi > 0 ? "border-t" : ""}`}
+                key={`${g.key}-${p.id}`}
+                className={`grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[1fr_1.2fr_9rem_2.5rem] ${gi > 0 || pi > 0 ? "border-t" : ""}`}
                 style={{ borderColor: COLORS.border }}
               >
                 <div className="flex min-w-0 items-center gap-1.5">
@@ -341,15 +371,15 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                 </button>
 
                 <p className="col-span-2 truncate text-sm md:col-span-1" style={{ color: COLORS.charcoal }}>
-                  {projectLabel}
+                  {p.projectName || "(ไม่ระบุชื่อโครงงาน)"}
                 </p>
 
                 <div className="col-span-2 md:col-span-1">
-                  <StatusCell items={allItems} />
+                  <StatusCell items={p.items} />
                 </div>
               </div>
-            );
-          })}
+            ))
+          ))}
         </div>
       )}
     </div>
