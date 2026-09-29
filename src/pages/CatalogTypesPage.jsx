@@ -40,6 +40,7 @@ const LEVEL_STYLE = {
 function TreeRow({
   level,
   label,
+  badge, // ข้อความเล็กๆ ต่อท้ายชื่อ เช่น "2 ชิ้นงานย่อย"
   active,
   extra,
   busy,
@@ -58,6 +59,10 @@ function TreeRow({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(label);
   const { accent, text } = LEVEL_STYLE[level] || LEVEL_STYLE.field;
+
+  // กดได้ทั้งแถบ เมื่อมีของข้างในให้กาง และไม่ได้อยู่ในโหมดแก้ชื่อ
+  const clickable = hasChildren && !editing;
+  const stop = (e) => e.stopPropagation(); // กันไม่ให้ปุ่ม/dropdown ในแถวไปสั่งกาง-ย่อ
 
   const startEdit = () => {
     setDraft(label);
@@ -78,7 +83,23 @@ function TreeRow({
   return (
     <div>
       <div
-        className="flex flex-wrap items-center gap-2 rounded-lg border py-2 pl-2.5 pr-3"
+        role={clickable ? "button" : undefined}
+        tabIndex={clickable ? 0 : undefined}
+        aria-expanded={clickable ? Boolean(expanded) : undefined}
+        onClick={clickable ? onToggleExpand : undefined}
+        onKeyDown={
+          clickable
+            ? (e) => {
+              if (e.target !== e.currentTarget) return;
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggleExpand();
+              }
+            }
+            : undefined
+        }
+        className={`flex flex-wrap items-center gap-2 rounded-lg border py-2 pl-2.5 pr-3 transition-shadow ${clickable ? "cursor-pointer select-none hover:shadow-sm" : ""
+          }`}
         style={{
           borderColor: COLORS.border,
           borderLeft: `3px solid ${active ? accent : COLORS.border}`,
@@ -86,10 +107,7 @@ function TreeRow({
         }}
       >
         {hasChildren ? (
-          <button
-            type="button"
-            onClick={onToggleExpand}
-            title={expanded ? "ย่อเก็บ" : "กางดูรายละเอียด"}
+          <span
             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border"
             style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
           >
@@ -97,7 +115,7 @@ function TreeRow({
               size={16}
               style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}
             />
-          </button>
+          </span>
         ) : (
           <span className="w-7 shrink-0" />
         )}
@@ -107,6 +125,7 @@ function TreeRow({
             <input
               autoFocus
               value={draft}
+              onClick={stop}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") saveEdit();
@@ -116,10 +135,15 @@ function TreeRow({
               style={{ borderColor: COLORS.amber }}
             />
           ) : (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <span className={text} style={{ color: active ? COLORS.charcoal : COLORS.textMuted }}>
                 {label}
               </span>
+              {badge && (
+                <span className="text-[11px] font-normal" style={{ color: COLORS.textMuted }}>
+                  {badge}
+                </span>
+              )}
               {!active && (
                 <span
                   className="rounded-full px-2 py-0.5 text-[11px] font-medium"
@@ -132,9 +156,9 @@ function TreeRow({
           )}
         </div>
 
-        {extra}
+        {extra && <div onClick={stop}>{extra}</div>}
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" onClick={stop}>
           {editing ? (
             <>
               <IconBtnLocal title="บันทึกชื่อ" onClick={saveEdit} disabled={busy}>
@@ -146,18 +170,27 @@ function TreeRow({
             </>
           ) : (
             <>
-              <IconBtnLocal title="เลื่อนลำดับขึ้น" onClick={onMoveUp} disabled={busy || !canMoveUp}>
+              <IconBtnLocal title="ย้ายขึ้น" onClick={onMoveUp} disabled={busy || !canMoveUp}>
                 <ArrowUp size={14} />
               </IconBtnLocal>
-              <IconBtnLocal title="เลื่อนลำดับลง" onClick={onMoveDown} disabled={busy || !canMoveDown}>
+              <IconBtnLocal title="ย้ายลง" onClick={onMoveDown} disabled={busy || !canMoveDown}>
                 <ArrowDown size={14} />
               </IconBtnLocal>
               <IconBtnLocal title="แก้ชื่อ" onClick={startEdit} disabled={busy}>
                 <Pencil size={13} />
               </IconBtnLocal>
-              <IconBtnLocal title={active ? "ปิดใช้งาน" : "เปิดใช้งาน"} onClick={onToggleActive} disabled={busy}>
-                <Power size={14} color={active ? COLORS.red : COLORS.green} />
-              </IconBtnLocal>
+              {/* เดิมเป็นไอคอน Power เฉยๆ ทำให้งงว่าคืออะไร -> ใส่ข้อความกำกับ (จอเล็กเหลือแค่ไอคอน) */}
+              <button
+                type="button"
+                onClick={onToggleActive}
+                disabled={busy}
+                title={active ? "ปิดใช้งาน (ซ่อนจากฟอร์มของช่าง)" : "เปิดใช้งานอีกครั้ง"}
+                className="flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium disabled:opacity-40"
+                style={{ borderColor: COLORS.border, background: "white", color: active ? COLORS.red : COLORS.green }}
+              >
+                <Power size={12} />
+                <span className="hidden sm:inline">{active ? "ปิดใช้งาน" : "เปิดใช้งาน"}</span>
+              </button>
             </>
           )}
         </div>
@@ -202,6 +235,7 @@ function OptionNode({ option, field, type, idx, total, busy, run, onMove, childF
     <TreeRow
       level="option"
       label={option.value}
+      badge={childFields.length > 0 ? `มี ${childFields.length} ช่องเพิ่มเติม` : undefined}
       active={active}
       busy={busy}
       hasChildren={childFields.length > 0}
@@ -313,6 +347,7 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
     <TreeRow
       level="field"
       label={field.label}
+      badge={`${field.options.length} ตัวเลือก`}
       active={active}
       extra={dependsSelect}
       busy={busy}
@@ -331,7 +366,7 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
           ช่องนี้ยังไม่มีตัวเลือก
         </p>
       )}
-            <div className="space-y-2">
+      <div className="space-y-2">
         {field.options.map((option, oIdx) => (
           <OptionNode
             key={option[PK.option]}
@@ -365,9 +400,38 @@ function FieldNode({ field, type, idx, total, busy, run, onMove, expanded, onTog
 function generateFieldKey() {
   return `f${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
-
+// ปุ่มเส้นประ กดแล้วค่อยกางฟอร์มเพิ่ม (children เป็นฟังก์ชันรับ close)
+function CollapsibleAdd({ label, children }) {
+  const [open, setOpen] = useState(false);
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-sm font-medium"
+        style={{ borderColor: COLORS.green, color: COLORS.green, background: "white" }}
+      >
+        <Plus size={14} />
+        {label}
+      </button>
+    );
+  }
+  return (
+    <div>
+      {children(() => setOpen(false))}
+      <button
+        type="button"
+        onClick={() => setOpen(false)}
+        className="mt-2 text-xs font-medium"
+        style={{ color: COLORS.textMuted }}
+      >
+        ยกเลิก
+      </button>
+    </div>
+  );
+}
 // ฟอร์มเพิ่มช่องรายละเอียดใหม่: มี dropdown "แสดงช่องนี้เมื่อ" + dropdown ย่อย "เฉพาะตอบว่าอะไร"
-function AddFieldForm({ type, busy, run }) {
+function AddFieldForm({ type, busy, run, onDone }) {
   const [label, setLabel] = useState("");
   const [dependsOn, setDependsOn] = useState("");
   const [dependsOnValue, setDependsOnValue] = useState("");
@@ -392,6 +456,7 @@ function AddFieldForm({ type, busy, run }) {
       setDependsOn("");
       setDependsOnValue("");
       setOptionsText("");
+      onDone?.();
     }
   };
 
@@ -486,6 +551,7 @@ function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onTo
     <TreeRow
       level="type"
       label={type.name}
+      badge={`${topFields.length} ช่องรายละเอียด`}
       active={active}
       busy={busy}
       hasChildren
@@ -499,7 +565,7 @@ function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onTo
       canMoveUp={idx > 0}
       canMoveDown={idx < total - 1}
     >
-            {topFields.length === 0 && (
+      {topFields.length === 0 && (
         <p className="text-xs" style={{ color: COLORS.textMuted }}>
           ชิ้นงานนี้ยังไม่มีช่องรายละเอียด
         </p>
@@ -528,7 +594,7 @@ function TypeNode({ type, catalog, idx, total, busy, run, onMove, expanded, onTo
   );
 }
 
-function AddTypeForm({ category, catalog, allTypes, busy, run }) {
+function AddTypeForm({ category, catalog, allTypes, busy, run, onDone }) {
   const [name, setName] = useState("");
   const [copyFromId, setCopyFromId] = useState("");
 
@@ -538,6 +604,7 @@ function AddTypeForm({ category, catalog, allTypes, busy, run }) {
     if (ok) {
       setName("");
       setCopyFromId("");
+      onDone?.();
     }
   };
 
@@ -583,7 +650,8 @@ function CategoryNode({ category, catalog, allTypes, idx, total, busy, run, onMo
   return (
     <TreeRow
       level="category"
-      label={category.name}
+      label={type.name}
+      badge={`${category.types.length} ชิ้นงานย่อย`}
       active={active}
       busy={busy}
       hasChildren
