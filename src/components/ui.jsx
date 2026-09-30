@@ -114,7 +114,7 @@ export function StatusSelect({ value, onChange }) {
         </option>
       ))}
     </select>
-  ); 
+  );
 }
 // ปุ่มเลือกสถานะแบบกดครั้งเดียว (แทน dropdown)
 export function StatusSegment({ value, onChange }) {
@@ -142,6 +142,30 @@ export function StatusSegment({ value, onChange }) {
           </button>
         );
       })}
+    </div>
+  );
+}
+// dropdown เลือกสถานที่ของลูกค้า (ใช้ทั้งในฟอร์มสร้างและตอนแก้ไขโครงงาน)
+export function LocationSelect({ value, onChange, locations, error, placeholder = "-- เลือกสถานที่ --" }) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={onChange}
+        className="w-full appearance-none rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none pr-9"
+        style={{ borderColor: error ? COLORS.red : COLORS.border, color: value ? COLORS.charcoal : COLORS.textMuted }}
+      >
+        <option value="">{placeholder}</option>
+        {locations.map((l) => (
+          <option key={l.location_id} value={l.location_id}>
+            {l.name}
+            {l.address ? ` — ${l.address}` : ""}
+          </option>
+        ))}
+      </select>
+      <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" width="12" height="8" viewBox="0 0 12 8" fill="none">
+        <path d="M1 1L6 6L11 1" stroke={COLORS.textMuted} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { COLORS } from "../lib/tokens.js";
-import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
+import { FieldLabel, TextInput, ErrorText, LocationSelect } from "../components/ui.jsx";
 import WorkItemCard from "../components/WorkItemCard.jsx";
 import ProjectCard from "../components/ProjectCard.jsx";
 import { validateForm, hasErrors } from "../lib/validation.js";
@@ -24,7 +24,7 @@ function newWorkItem() {
     positionPhotos: [],
     workPhotos: [],
     note: "",
-    
+
     status: DEFAULT_STATUS,
   };
 }
@@ -78,8 +78,13 @@ export default function SiteWorkForm({
   const [projectDate, setProjectDate] = useState(todayStr());
   const [projectTitle, setProjectTitle] = useState("");
   const [projectTitleError, setProjectTitleError] = useState(false);
+  const [selectedLocationId, setSelectedLocationId] = useState("");
+  const [locationError, setLocationError] = useState(false);
 
   const selectedCustomer = customers.find((c) => String(c.customer_id) === String(selectedCustomerId)) || null;
+  const customerLocations = selectedCustomer?.locations || [];
+  const selectedLocation =
+    customerLocations.find((l) => String(l.location_id) === String(selectedLocationId)) || null;
 
   function todayStr() {
     const d = new Date();
@@ -94,6 +99,8 @@ export default function SiteWorkForm({
     const c = customers.find((cust) => String(cust.customer_id) === String(value));
     setProjectName(c?.name || "");
     setShowCreateNew(false);
+    setSelectedLocationId("");
+    setLocationError(false);
   };
 
   const customerProjects = selectedCustomer
@@ -120,10 +127,12 @@ export default function SiteWorkForm({
   const addItem = () => setItems((prev) => [...prev, newWorkItem()]);
 
   const resetCustomerSelection = () => {
-  setSelectedCustomerId("");
-  setProjectName("");
-  setShowCreateNew(false);
-};
+    setSelectedCustomerId("");
+    setProjectName("");
+    setShowCreateNew(false);
+    setSelectedLocationId("");
+    setLocationError(false);
+  };
 
   const handleSave = async () => {
     setSubmitted(true);
@@ -132,8 +141,10 @@ export default function SiteWorkForm({
     setErrors(nextErrors);
     const titleMissing = !projectTitle.trim();
     setProjectTitleError(titleMissing);
+    const locationMissing = !selectedLocation;
+    setLocationError(locationMissing);
 
-    if (hasErrors(nextErrors) || titleMissing) {
+    if (hasErrors(nextErrors) || titleMissing || locationMissing) {
       setSavedMsg("");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -158,6 +169,10 @@ export default function SiteWorkForm({
         .insert({
           customer_id: customer.customer_id,
           project_name: projectTitle.trim(),
+          location_id: selectedLocation.location_id,
+          location: selectedLocation.name,
+          latitude: selectedLocation.latitude ?? null,
+          longitude: selectedLocation.longitude ?? null,
           created_date: new Date(`${projectDate}T${new Date().toTimeString().slice(0, 8)}`).toISOString(),
         })
         .select()
@@ -277,6 +292,7 @@ export default function SiteWorkForm({
                     onDelete={() => onDeleteProject(p.id)}
                     workCatalog={workCatalog}
                     categoryOrder={categoryOrder}
+                    locations={customerLocations}
                   />
                 ))}
             </div>
@@ -330,6 +346,24 @@ export default function SiteWorkForm({
               {projectTitleError && <ErrorText>กรุณากรอกชื่อโครงงาน</ErrorText>}
             </div>
           </div>
+          <div className="mb-6">
+            <FieldLabel icon={MapPin} required>สถานที่หน้างาน</FieldLabel>
+            {customerLocations.length === 0 ? (
+              <p className="rounded-lg border p-3 text-sm" style={{ borderColor: COLORS.red, background: "#FDECEC", color: COLORS.red }}>
+                ลูกค้ารายนี้ยังไม่มีสถานที่ กรุณาไปเพิ่มที่เมนู "ลูกค้า &gt; รายละเอียดลูกค้า" ก่อน
+              </p>
+            ) : (
+              <>
+                <LocationSelect
+                  value={selectedLocationId}
+                  onChange={(e) => { setSelectedLocationId(e.target.value); setLocationError(false); }}
+                  locations={customerLocations}
+                  error={locationError}
+                />
+                {locationError && <ErrorText>กรุณาเลือกสถานที่หน้างาน</ErrorText>}
+              </>
+            )}
+          </div>
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: COLORS.charcoal }}>
               <Layers size={15} style={{ color: COLORS.amber }} />
@@ -367,7 +401,7 @@ export default function SiteWorkForm({
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
+              disabled={saving || customerLocations.length === 0}
               className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95 hover:-translate-y-0.5 disabled:opacity-60"
               style={{ background: COLORS.charcoal }}
             >

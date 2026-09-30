@@ -31,15 +31,17 @@ function mapPhotos(sitePhotos, photoType) {
 }
 
 function mapProjectFromDb(row) {
+  const loc = row.location_ref; // สถานที่ที่ผูกอยู่ (null ถ้าเป็นโครงงานเก่าหรือสถานที่ถูกลบ)
   return {
     id: row.project_id,
     projectName: row.project_name || "",
     customerId: row.customer_id,
     customerName: row.customer?.name || "(ไม่ระบุชื่อ)",
     customerPhone: row.customer?.phone || "",
-    location: row.location,
-    latitude: row.latitude,
-    longitude: row.longitude,
+    locationId: row.location_id ?? null,
+    location: loc ? loc.name : row.location,
+    latitude: loc ? loc.latitude : row.latitude,
+    longitude: loc ? loc.longitude : row.longitude,
     savedAt: row.created_date,
     updatedAt: row.updated_at,
 
@@ -53,8 +55,8 @@ function mapProjectFromDb(row) {
         answers: it.details || {},
         positionNote: it.position_note || "",
         note: it.note || "",
-        positionDetail: it.position_detail || "",   
-        workDetail: it.work_detail || "",          
+        positionDetail: it.position_detail || "",
+        workDetail: it.work_detail || "",
         status: it.status || DEFAULT_STATUS,
         positionPhotos: mapPhotos(it.site_photos, "position"),
         workPhotos: mapPhotos(it.site_photos, "work"),
@@ -74,7 +76,7 @@ export default function App() {
     setLoading(true);
     const { data, error } = await supabase
       .from("projects")
-      .select("*, customer:customers(*), job_items(*, site_photos(*))")
+      .select("*, customer:customers(*), location_ref:customer_locations!projects_location_id_fkey(*), job_items(*, site_photos(*))")
       .order("created_date", { ascending: false });
 
     if (error) {
@@ -109,6 +111,7 @@ export default function App() {
       .from("projects")
       .update({
         customer_id: customer.customer_id,
+        location_id: updatedProject.locationId ?? null,
         location: updatedProject.location,
         latitude: updatedProject.latitude,
         longitude: updatedProject.longitude,

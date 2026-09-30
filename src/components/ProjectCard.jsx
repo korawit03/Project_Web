@@ -12,7 +12,7 @@ import {
          Plus,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
-import { FieldLabel, TextInput } from "./ui.jsx";
+import { FieldLabel, LocationSelect } from "./ui.jsx";
 import WorkItemCard from "./WorkItemCard.jsx";
 import LocationPicker from "./LocationPicker.jsx";
 import { validateForm, hasErrors } from "../lib/validation.js";
@@ -58,17 +58,13 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
          const [errors, setErrors] = useState({ projectName: false, items: {} });
          const [lightbox, setLightbox] = useState({ photos: [], index: null });
 
-         const [editLocation, setEditLocation] = useState(project.location || "");
-         const [editLatitude, setEditLatitude] = useState(project.latitude ?? null);
-         const [editLongitude, setEditLongitude] = useState(project.longitude ?? null);
+         const [editLocationId, setEditLocationId] = useState(project.locationId ?? "");
          const [editItems, setEditItems] = useState(() =>
                   project.items.map((it) => ({ ...it, answers: { ...it.answers } }))
          );
 
          const startEdit = () => {
-                  setEditLocation(project.location || "");
-                  setEditLatitude(project.latitude ?? null);
-                  setEditLongitude(project.longitude ?? null);
+                  setEditLocationId(project.locationId ?? "");
                   setEditItems(project.items.map((it) => ({ ...it, answers: { ...it.answers } })));
                   setSubmitted(false);
                   setErrors({ projectName: false, items: {} });
@@ -97,19 +93,21 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                   const confirmed = window.confirm("ยืนยันบันทึกการแก้ไขโครงงานนี้ใช่หรือไม่?");
                   if (!confirmed) return;
 
-                  setSaving(true);
-                  try {
-                           const ok = await onUpdate({
-                                    ...project,
-                                    location: editLocation,
-                                    latitude: editLatitude,
-                                    longitude: editLongitude,
-                                    items: editItems,
-                           });
-                           if (ok !== false) setEditing(false);
-                  } finally {
-                           setSaving(false);
-                  }
+                  const chosen = locations.find((l) => String(l.location_id) === String(editLocationId));
+                  const locationPatch = chosen
+                           ? {
+                                    locationId: chosen.location_id,
+                                    location: chosen.name,
+                                    latitude: chosen.latitude ?? null,
+                                    longitude: chosen.longitude ?? null,
+                           }
+                           : {}; // ไม่ได้เลือก = คงค่าเดิมของโครงงาน
+
+                  const ok = await onUpdate({
+                           ...project,
+                           ...locationPatch,
+                           items: editItems,
+                  });
          };
 
          const handleDelete = async () => {
@@ -282,18 +280,17 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                            {editing && (
                                     <div className="mt-4 space-y-4 border-t pt-4" style={{ borderColor: COLORS.border }}>
                                              <div>
-                                                      <FieldLabel icon={MapPin}>สถานที่ / พิกัดที่ตั้ง</FieldLabel>
-                                                      <TextInput placeholder="" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
-                                                      <div className="mt-2">
-                                                               <LocationPicker
-                                                                        latitude={editLatitude}
-                                                                        longitude={editLongitude}
-                                                                        onChange={({ latitude: lat, longitude: lng }) => {
-                                                                                 setEditLatitude(lat);
-                                                                                 setEditLongitude(lng);
-                                                                        }}
-                                                               />
-                                                      </div>
+                                                      <FieldLabel icon={MapPin}>สถานที่หน้างาน</FieldLabel>
+                                                      <LocationSelect
+                                                               value={editLocationId}
+                                                               onChange={(e) => setEditLocationId(e.target.value)}
+                                                               locations={locations}
+                                                               placeholder={
+                                                                        project.location
+                                                                                 ? `ไม่เปลี่ยน (ปัจจุบัน: ${project.location})`
+                                                                                 : "-- เลือกสถานที่ --"
+                                                               }
+                                                      />
                                              </div>
 
                                              <div className="flex items-center justify-between">
