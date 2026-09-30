@@ -17,6 +17,7 @@ import WorkItemCard from "./WorkItemCard.jsx";
 import LocationPicker from "./LocationPicker.jsx";
 import { validateForm, hasErrors } from "../lib/validation.js";
 import { DEFAULT_STATUS } from "../lib/status.js";
+import PhotoLightbox from "./PhotoLightbox.jsx";
 
 let editItemCounter = 1;
 function newWorkItem() {
@@ -55,6 +56,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
          const [deleting, setDeleting] = useState(false);
          const [submitted, setSubmitted] = useState(false);
          const [errors, setErrors] = useState({ projectName: false, items: {} });
+         const [lightbox, setLightbox] = useState({ photos: [], index: null });
 
          const [editLocation, setEditLocation] = useState(project.location || "");
          const [editLatitude, setEditLatitude] = useState(project.latitude ?? null);
@@ -248,23 +250,32 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                                  <span style={{ color: COLORS.textMuted }}>รายละเอียดชิ้นงานเพิ่มเติม:</span> {it.workDetail}
                                                                         </p>
                                                                )}
-                                                               {(it.workPhotos?.length > 0 || it.positionPhotos?.length > 0) && (
-                                                                        <div className="mt-2 flex flex-wrap gap-1.5">
-                                                                                 {[...it.positionPhotos, ...it.workPhotos].map((p) => (
-                                                                                          <a key={p.id}
-                                                                                                   href={p.url}
-                                                                                                   target="_blank"
-                                                                                                   rel="noreferrer"
-                                                                                                   className="block h-12 w-12 overflow-hidden rounded-md border"
-                                                                                                   style={{ borderColor: COLORS.border }}>
-
-                                                                                                   <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
-                                                                                          </a>
-                                                                                 ))}
-                                                                        </div>
-                                                               )}
+                                                               {(it.workPhotos?.length > 0 || it.positionPhotos?.length > 0) && (() => {
+                                                                        const all = [...(it.positionPhotos || []), ...(it.workPhotos || [])];
+                                                                        return (
+                                                                                 <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                                          {all.map((p, i) => (
+                                                                                                   <button
+                                                                                                            key={p.id}
+                                                                                                            type="button"
+                                                                                                            onClick={() => setLightbox({ photos: all, index: i })}
+                                                                                                            className="block h-12 w-12 cursor-zoom-in overflow-hidden rounded-md border"
+                                                                                                            style={{ borderColor: COLORS.border }}
+                                                                                                   >
+                                                                                                            <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
+                                                                                                   </button>
+                                                                                          ))}
+                                                                                 </div>
+                                                                        );
+                                                               })()}
                                                       </div>
                                              ))}
+                                             <PhotoLightbox
+                                                      photos={lightbox.photos}
+                                                      index={lightbox.index}
+                                                      onClose={() => setLightbox((l) => ({ ...l, index: null }))}
+                                                      onChange={(i) => setLightbox((l) => ({ ...l, index: i }))}
+                                             />
                                     </div>
                            )}
 

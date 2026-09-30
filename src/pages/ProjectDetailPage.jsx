@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon, History, Tag } from "lucide-react"; import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
 import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
+import PhotoLightbox from "../components/PhotoLightbox.jsx";
 
 function getOverallStatus(items) {
   const list = items || [];
@@ -68,25 +69,32 @@ function StatusCell({ items }) {
 
 // แถวรูปเล็กๆ (กดเปิดรูปเต็มในแท็บใหม่)
 function PhotoRow({ photos, altFallback }) {
+  const [openIndex, setOpenIndex] = useState(null);
   if (!photos || photos.length === 0) return null;
   return (
-    <div className="flex flex-wrap gap-2">
-      {photos.map((ph) => (
-        <a
-          key={ph.id || ph.url}
-          href={ph.url}
-          target="_blank"
-          rel="noreferrer"
-          className="block h-16 w-16 overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
-          style={{ borderColor: COLORS.border }}
-        >
-          <img src={ph.url} alt={ph.name || altFallback} className="h-full w-full object-cover" />
-        </a>
-      ))}
-    </div>
+    <>
+      <div className="flex flex-wrap gap-2">
+        {photos.map((ph, i) => (
+          <button
+            key={ph.id || ph.url}
+            type="button"
+            onClick={() => setOpenIndex(i)}
+            className="block h-16 w-16 cursor-zoom-in overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
+            style={{ borderColor: COLORS.border }}
+          >
+            <img src={ph.url} alt={ph.name || altFallback} className="h-full w-full object-cover" />
+          </button>
+        ))}
+      </div>
+      <PhotoLightbox
+        photos={photos}
+        index={openIndex}
+        onClose={() => setOpenIndex(null)}
+        onChange={setOpenIndex}
+      />
+    </>
   );
 }
-
 // กล่องหนึ่งส่วน: หัวข้อ + รูป (บน) + ข้อความ (ล่าง) ถ้าไม่มีข้อมูลเลยจะไม่แสดงกล่อง
 const EXTRA_LABEL = "รายละเอียดเพิ่มเติม";
 
@@ -337,7 +345,7 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                               extraText={item.workDetail}
                             />
 
-                            
+
 
                             {!hasAnswers && !item.positionNote && !item.positionDetail && !item.note && !item.workDetail && !hasPhotos && (
                               <p className="text-xs" style={{ color: COLORS.textMuted }}>

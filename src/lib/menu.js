@@ -25,7 +25,7 @@ export const MENU = [
     label: "โครงงาน",
     icon: ClipboardList,
     children: [
-      { key: "form", label: "เพิ่ม", icon: Plus },
+      { key: "form", label: "เพิ่มโครงงาน", icon: Plus },
       { key: "project-detail", label: "รายละเอียดงาน", icon: ListChecks },
     ],
   },
