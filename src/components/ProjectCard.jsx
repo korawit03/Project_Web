@@ -236,6 +236,17 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                         <p className="mt-1 text-xs italic" style={{ color: COLORS.textMuted }}>
                                                                                  หมายเหตุ: {it.note}
                                                                         </p>
+
+                                                               )}
+                                                               {it.positionDetail && (
+                                                                        <p className="mt-1 text-xs whitespace-pre-line" style={{ color: COLORS.charcoalSoft }}>
+                                                                                 <span style={{ color: COLORS.textMuted }}>รายละเอียดหน้างานเพิ่มเติม:</span> {it.positionDetail}
+                                                                        </p>
+                                                               )}
+                                                               {it.workDetail && (
+                                                                        <p className="mt-1 text-xs whitespace-pre-line" style={{ color: COLORS.charcoalSoft }}>
+                                                                                 <span style={{ color: COLORS.textMuted }}>รายละเอียดชิ้นงานเพิ่มเติม:</span> {it.workDetail}
+                                                                        </p>
                                                                )}
                                                                {(it.workPhotos?.length > 0 || it.positionPhotos?.length > 0) && (
                                                                         <div className="mt-2 flex flex-wrap gap-1.5">

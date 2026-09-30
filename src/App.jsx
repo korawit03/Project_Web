@@ -53,6 +53,8 @@ function mapProjectFromDb(row) {
         answers: it.details || {},
         positionNote: it.position_note || "",
         note: it.note || "",
+        positionDetail: it.position_detail || "",   
+        workDetail: it.work_detail || "",          
         status: it.status || DEFAULT_STATUS,
         positionPhotos: mapPhotos(it.site_photos, "position"),
         workPhotos: mapPhotos(it.site_photos, "work"),

@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon, History } from "lucide-react";
-import { COLORS } from "../lib/tokens.js";
+import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon, History, Tag } from "lucide-react"; import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
 import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
 
@@ -67,6 +66,66 @@ function StatusCell({ items }) {
   );
 }
 
+// แถวรูปเล็กๆ (กดเปิดรูปเต็มในแท็บใหม่)
+function PhotoRow({ photos, altFallback }) {
+  if (!photos || photos.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {photos.map((ph) => (
+        <a
+          key={ph.id || ph.url}
+          href={ph.url}
+          target="_blank"
+          rel="noreferrer"
+          className="block h-16 w-16 overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
+          style={{ borderColor: COLORS.border }}
+        >
+          <img src={ph.url} alt={ph.name || altFallback} className="h-full w-full object-cover" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+// กล่องหนึ่งส่วน: หัวข้อ + รูป (บน) + ข้อความ (ล่าง) ถ้าไม่มีข้อมูลเลยจะไม่แสดงกล่อง
+const EXTRA_LABEL = "รายละเอียดเพิ่มเติม";
+
+function DetailSection({ icon: Icon, title, photos, mainText, mainItalic = false, extraText }) {
+  const hasContent = (photos && photos.length > 0) || mainText || extraText;
+  if (!hasContent) return null;
+
+  return (
+    <div className="rounded-lg border bg-white p-3 space-y-2.5" style={{ borderColor: COLORS.border }}>
+      <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: COLORS.charcoal }}>
+        <Icon size={12} style={{ color: COLORS.amber }} />
+        {title}
+        {photos?.length > 0 && (
+          <span className="font-normal" style={{ color: COLORS.textMuted }}>
+            · {photos.length} รูป
+          </span>
+        )}
+      </p>
+
+      <PhotoRow photos={photos} altFallback={title} />
+
+      {mainText && (
+        <p
+          className={`text-sm font-medium ${mainItalic ? "italic" : ""}`}
+          style={{ color: COLORS.charcoal }}
+        >
+          {mainText}
+        </p>
+      )}
+
+      {extraText && (
+        <p className="text-xs whitespace-pre-line" style={{ color: COLORS.charcoalSoft }}>
+          <span className="font-medium" style={{ color: COLORS.textMuted }}>{EXTRA_LABEL}:</span>{" "}
+          {extraText}
+        </p>
+      )}
+    </div>
+  );
+}
 export default function ProjectDetailPage({ projects, loading, onItemStatusChange, workCatalog = {} }) {
   const [search, setSearch] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -246,8 +305,8 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                         </div>
 
                         {isOpen && (
-                          <div className="space-y-3.5 border-t p-4" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
-                            {/* ข้อมูลคุณลักษณะ (Answers) */}
+                          <div className="space-y-3 border-t p-4" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
+                            {/* ข้อมูลคุณลักษณะ (Answers) - เหมือนเดิม */}
                             {hasAnswers && (
                               <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
                                 {Object.entries(item.answers).map(([key, value]) => {
@@ -261,62 +320,26 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                               </div>
                             )}
 
-                            {/* รายละเอียดชิ้นงาน */}
-                            {item.note && (
-                              <p className="text-xs italic" style={{ color: COLORS.textMuted }}>
-                                รายละเอียดชิ้นงาน: {item.note}
-                              </p>
-                            )}
+                            <DetailSection
+                              icon={MapPin}
+                              title="รายละเอียดหน้างาน"
+                              photos={positionPhotos}
+                              mainText={item.positionNote}
+                              extraText={item.positionDetail}
+                            />
 
-                            {/* รูปภาพตำแหน่งติดตั้ง */}
-                            {positionPhotos.length > 0 && (
-                              <div className="pt-1">
-                                <p className="mb-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: COLORS.charcoal }}>
-                                  <ImageIcon size={12} style={{ color: COLORS.amber }} />
-                                  รูปตำแหน่งติดตั้ง ({positionPhotos.length})
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {positionPhotos.map((ph) => (
-                                    <a
-                                      key={ph.id || ph.url}
-                                      href={ph.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="block h-16 w-16 overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
-                                      style={{ borderColor: COLORS.border }}
-                                    >
-                                      <img src={ph.url} alt={ph.name || "รูปตำแหน่ง"} className="h-full w-full object-cover" />
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                            <DetailSection
+                              icon={Tag}
+                              title="รายละเอียดชิ้นงาน"
+                              photos={workPhotos}
+                              mainText={item.note}
+                              mainItalic
+                              extraText={item.workDetail}
+                            />
 
-                            {/* รูปภาพงาน */}
-                            {workPhotos.length > 0 && (
-                              <div className="pt-1">
-                                <p className="mb-1.5 text-xs font-semibold flex items-center gap-1" style={{ color: COLORS.charcoal }}>
-                                  <ImageIcon size={12} style={{ color: COLORS.amber }} />
-                                  รูปงาน ({workPhotos.length})
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {workPhotos.map((ph) => (
-                                    <a
-                                      key={ph.id || ph.url}
-                                      href={ph.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="block h-16 w-16 overflow-hidden rounded-lg border shadow-sm transition-transform hover:scale-105"
-                                      style={{ borderColor: COLORS.border }}
-                                    >
-                                      <img src={ph.url} alt={ph.name || "รูปงาน"} className="h-full w-full object-cover" />
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                            
 
-                            {!hasAnswers && !item.note && !hasPhotos && (
+                            {!hasAnswers && !item.positionNote && !item.positionDetail && !item.note && !item.workDetail && !hasPhotos && (
                               <p className="text-xs" style={{ color: COLORS.textMuted }}>
                                 ไม่มีรายละเอียดเพิ่มเติม
                               </p>
