@@ -7,8 +7,7 @@ import { validateForm, hasErrors } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
-import { Wrench, Plus, Layers, Save, AlertCircle, Phone, Users, X, Calendar } from "lucide-react";
-import { DEFAULT_STATUS } from "../lib/status.js";
+import { Wrench, Plus, Layers, Save, AlertCircle, Phone, Users, X, Calendar, MapPin } from "lucide-react";import { DEFAULT_STATUS } from "../lib/status.js";
 
 
 let itemCounter = 1;

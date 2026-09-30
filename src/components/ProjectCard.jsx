@@ -49,7 +49,7 @@ function formatDate(dateStr) {
 }
 
 // การ์ดแสดง 1 โครงงาน พร้อมกางดูรายละเอียด / แก้ไข / ลบ
-export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder }) {
+export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, categoryOrder, locations = [] }) {
          const [expanded, setExpanded] = useState(false);
          const [editing, setEditing] = useState(false);
          const [saving, setSaving] = useState(false);
@@ -107,7 +107,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                            ...project,
                            ...locationPatch,
                            items: editItems,
-                  });
+                  }); if (ok) setEditing(false);
          };
 
          const handleDelete = async () => {
