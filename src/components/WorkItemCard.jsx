@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle } from "lucide-react";
-import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, Select, ErrorText } from "./ui.jsx";
 import PhotoDropzone from "./PhotoDropzone.jsx";
 import { isNoneValue, isFieldVisible } from "../lib/validation.js";
-
+import { COLORS, SECTION } from "../lib/tokens.js";
 
 
 export default function WorkItemCard({
@@ -145,7 +144,11 @@ export default function WorkItemCard({
         {catalogEntry && (
           <div
             className="rounded-lg border p-4"
-            style={{ borderColor: answerErrorCount > 0 ? COLORS.red : COLORS.border, background: "#FCFBF8" }}
+            style={{
+              borderColor: answerErrorCount > 0 ? COLORS.red : SECTION.detail.border,
+              borderLeft: `4px solid ${answerErrorCount > 0 ? COLORS.red : SECTION.detail.accent}`,
+              background: SECTION.detail.bg,
+            }}
           >
             <div className="flex items-center gap-1.5 text-sm font-medium mb-3" style={{ color: COLORS.charcoal }}>
               <Layers size={14} style={{ color: COLORS.amber }} />
@@ -170,12 +173,20 @@ export default function WorkItemCard({
           </div>
         )}
 
-                {/* รายละเอียดหน้างาน (เดิมคือ ระบุตำแหน่งติดตั้ง) */}
-        <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: errors.positionNote ? COLORS.red : COLORS.border }}>
-          <FieldLabel icon={MapPin} required tone="amber">
+        {/* รายละเอียดหน้างาน (เดิมคือ ระบุตำแหน่งติดตั้ง) */}
+        <div
+          className="rounded-lg border p-4 space-y-3"
+          style={{
+            borderColor: errors.positionNote ? COLORS.red : SECTION.site.border,
+            borderLeft: `4px solid ${errors.positionNote ? COLORS.red : SECTION.site.accent}`,
+            background: SECTION.site.bg,
+          }}
+        >
+          <FieldLabel icon={MapPin} required iconColor={SECTION.site.accent}>
             รายละเอียดหน้างาน
           </FieldLabel>
           <PhotoDropzone
+            tone={SECTION.site}
             label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง"
             photos={item.positionPhotos}
             onAdd={(list) => set({ positionPhotos: [...list, ...item.positionPhotos] })}
@@ -199,10 +210,18 @@ export default function WorkItemCard({
           />
         </div>
 
-               {/* รายละเอียดชิ้นงาน (เดิมคือ รูปถ่ายหน้างาน / ขนาดชิ้นงาน) */}
-        <div className="rounded-lg border p-4 space-y-3" style={{ borderColor: COLORS.border }}>
-          <FieldLabel icon={Tag}>รายละเอียดชิ้นงาน</FieldLabel>
+        {/* รายละเอียดชิ้นงาน (เดิมคือ รูปถ่ายหน้างาน / ขนาดชิ้นงาน) */}
+        <div
+          className="rounded-lg border p-4 space-y-3"
+          style={{
+            borderColor: SECTION.work.border,
+            borderLeft: `4px solid ${SECTION.work.accent}`,
+            background: SECTION.work.bg,
+          }}
+        >
+          <FieldLabel icon={Tag} iconColor={SECTION.work.accent}>รายละเอียดชิ้นงาน</FieldLabel>
           <PhotoDropzone
+            tone={SECTION.work}
             label="รูปประกอบรายละเอียดชิ้นงาน"
             hint="ถ่ายรูปหรือเลือกรูปจากคลังภาพ เพื่อแสดงรายละเอียดและขนาดของชิ้นงาน"
             photos={item.workPhotos}

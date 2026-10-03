@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { COLORS } from "../lib/tokens.js";
 import { filterName } from "../lib/nameValidation.js";
 
-export function FieldLabel({ icon: Icon, required, children, tone = "charcoal" }) {
+export function FieldLabel({ icon: Icon, required, children, tone = "charcoal", iconColor }) {
+  const color = iconColor || (tone === "amber" ? COLORS.amber : COLORS.textMuted);
   return (
     <label className="flex items-center gap-1.5 text-sm font-medium mb-1.5" style={{ color: COLORS.charcoal }}>
-      {Icon && <Icon size={14} style={{ color: tone === "amber" ? COLORS.amber : COLORS.textMuted }} />}
+      {Icon && <Icon size={14} style={{ color }} />}
       {children}
       {required && <span style={{ color: COLORS.red }}>*</span>}
     </label>

@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Camera, Image, X } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 
-export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, onReorder }) {
+export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, onReorder, tone }) {
   const cameraInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const tileRefs = useRef({}); // id -> DOM node ของแต่ละรูป
@@ -87,7 +87,10 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, on
   return (
     <div
       className="rounded-lg border border-dashed p-4"
-      style={{ borderColor: COLORS.border, background: "#FCFBF8" }}
+      style={{
+        borderColor: tone?.accent || COLORS.border,
+        background: tone ? "rgba(255,255,255,0.75)" : "#FCFBF8",
+      }}
       onDragOver={(e) => e.preventDefault()}
       onDrop={(e) => {
         e.preventDefault();
@@ -95,8 +98,7 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, on
       }}
     >
       <div className="flex items-center gap-1.5 text-sm font-medium mb-1" style={{ color: COLORS.charcoal }}>
-        <Camera size={14} style={{ color: COLORS.amber }} />
-        {label}
+        <Camera size={14} style={{ color: tone?.accent || COLORS.amber }} />        {label}
       </div>
       {hint && (
         <p className="text-xs mb-3" style={{ color: COLORS.textMuted }}>

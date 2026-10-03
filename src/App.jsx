@@ -65,7 +65,7 @@ function mapProjectFromDb(row) {
 }
 
 export default function App() {
-  const [activeView, setActiveView] = useState("form");
+  const [activeView, setActiveView] = useState("customer-list");
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const { workCatalog, categoryOrder, loading: catalogLoading, reload: reloadCatalog } = useWorkCatalog();
