@@ -3,12 +3,25 @@ import { MapPin, Plus, Trash2 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "./ui.jsx";
 import MapPinPicker from "./MapPinPicker.jsx";
+import ThaiAddressFields from "./ThaiAddressFields.jsx";
+import { addrFromLocation } from "../lib/thaiAddress.js";
 
 let rowCounter = 1;
 
 // แถวสถานที่ใหม่ (ยังไม่มี location_id)
 export function newLocationRow() {
-  return { key: `loc-new-${Date.now()}-${rowCounter++}`, location_id: null, name: "", address: "", latitude: null, longitude: null };
+  return {
+    key: `loc-new-${Date.now()}-${rowCounter++}`,
+    location_id: null,
+    name: "",
+    addressLine: "",
+    province: "",
+    district: "",
+    subdistrict: "",
+    postalCode: "",
+    latitude: null,
+    longitude: null,
+  };
 }
 
 export function toLocationRows(locations) {
@@ -16,7 +29,7 @@ export function toLocationRows(locations) {
     key: `loc-${l.location_id}`,
     location_id: l.location_id,
     name: l.name || "",
-    address: l.address || "",
+    ...addrFromLocation(l),
     latitude: l.latitude ?? null,
     longitude: l.longitude ?? null,
   }));
@@ -80,18 +93,10 @@ export default function LocationListEditor({ rows, onChange, errorKeys = {} }) {
             {errorKeys[row.key] && <ErrorText>กรุณาระบุชื่อสถานที่</ErrorText>}
           </div>
 
-          <div>
-            <FieldLabel icon={MapPin}>รายละเอียดที่อยู่เพิ่มเติม</FieldLabel>
-            <textarea
-              rows={2}
-              placeholder="เช่น บ้านเลขที่ 99/1 ซอย... ตำบล... อำเภอ..."
-              value={row.address}
-              onChange={(e) => updateRow(row.key, { address: e.target.value })}
-              className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
-              style={{ borderColor: COLORS.border }}
-            />
-          </div>
-
+          <ThaiAddressFields
+            value={row}
+            onChange={(patch) => updateRow(row.key, patch)}
+          />
           <div>
             <FieldLabel icon={MapPin}>ปักหมุดตำแหน่ง</FieldLabel>
             <MapPinPicker

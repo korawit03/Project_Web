@@ -3,11 +3,13 @@ import { MapPin, ChevronRight, Pencil, Trash2, Save, X, Plus } from "lucide-reac
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, ErrorText } from "./ui.jsx";
 import MapPinPicker from "./MapPinPicker.jsx";
+import ThaiAddressFields from "./ThaiAddressFields.jsx";
+import { EMPTY_ADDR, addrFromLocation } from "../lib/thaiAddress.js";
 
 // ฟอร์มแก้ไข/เพิ่มสถานที่ 1 แห่ง (ใช้ร่วมกันทั้งแก้ไขของเดิมและเพิ่มใหม่)
-function LocationEditForm({ initialName = "", initialAddress = "", initialLatitude = null, initialLongitude = null, onSave, onCancel, saveLabel = "บันทึก" }) {
+function LocationEditForm({ initialName = "", initialAddr = "", initialLatitude = null, initialLongitude = null, onSave, onCancel, saveLabel = "บันทึก" }) {
   const [name, setName] = useState(initialName);
-  const [address, setAddress] = useState(initialAddress);
+  const [addr, setAddr] = useState(initialAddr);
   const [latitude, setLatitude] = useState(initialLatitude);
   const [longitude, setLongitude] = useState(initialLongitude);
   const [nameError, setNameError] = useState(false);
@@ -22,7 +24,7 @@ function LocationEditForm({ initialName = "", initialAddress = "", initialLatitu
     setSaving(true);
     setError("");
     try {
-      await onSave({ name: name.trim(), address: address.trim(), latitude, longitude });
+      await onSave({ name: name.trim(), ...addr, latitude, longitude });
     } catch (err) {
       console.error("Save location failed:", err);
       setError("บันทึกสถานที่ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
@@ -49,17 +51,7 @@ function LocationEditForm({ initialName = "", initialAddress = "", initialLatitu
         />
         {nameError && <ErrorText>กรุณาระบุชื่อสถานที่</ErrorText>}
       </div>
-      <div>
-        <FieldLabel icon={MapPin}>รายละเอียดที่อยู่เพิ่มเติม</FieldLabel>
-        <textarea
-          rows={2}
-          placeholder="เช่น บ้านเลขที่ 99/1 ซอย... ตำบล... อำเภอ..."
-          value={address}
-          onChange={(e) => setAddress(e.target.value)}
-          className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
-          style={{ borderColor: COLORS.border }}
-        />
-      </div>
+      <ThaiAddressFields value={addr} onChange={(patch) => setAddr((a) => ({ ...a, ...patch }))} />
 
 
       <div>
@@ -127,7 +119,7 @@ function LocationRow({ location, onView, onSave, onDelete }) {
     return (
       <LocationEditForm
         initialName={location.name}
-        initialAddress={location.address || ""} initialLatitude={location.latitude}
+        initialAddr={addrFromLocation(location)}
         initialLongitude={location.longitude}
         onCancel={() => setEditing(false)}
         onSave={async (patch) => {
@@ -140,20 +132,20 @@ function LocationRow({ location, onView, onSave, onDelete }) {
 
   return (
     <div className="flex min-w-0 items-start gap-2 rounded-lg border p-3" style={{ borderColor: COLORS.border, background: "#FCFBF8" }}>
-  <button type="button" onClick={onView} className="flex min-w-0 flex-1 items-start gap-2 text-left">
-    <div className="min-w-0 flex-1">
-      <p className="text-sm font-medium truncate" style={{ color: COLORS.charcoal }}>
-        {location.name}
-      </p>
-      {location.address && (
-        <p className="text-xs break-words" style={{ color: COLORS.textMuted }}>{location.address}</p>
-      )}
-      <p className="text-xs" style={{ color: hasPin ? COLORS.green : COLORS.textMuted }}>
-        {hasPin ? "ปักหมุดแล้ว" : "ยังไม่ได้ปักหมุด"}
-      </p>
-    </div>
-    <ChevronRight size={16} className="mt-0.5 shrink-0" style={{ color: COLORS.textMuted }} />
-  </button>
+      <button type="button" onClick={onView} className="flex min-w-0 flex-1 items-start gap-2 text-left">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium truncate" style={{ color: COLORS.charcoal }}>
+            {location.name}
+          </p>
+          {location.address && (
+            <p className="text-xs break-words" style={{ color: COLORS.textMuted }}>{location.address}</p>
+          )}
+          <p className="text-xs" style={{ color: hasPin ? COLORS.green : COLORS.textMuted }}>
+            {hasPin ? "ปักหมุดแล้ว" : "ยังไม่ได้ปักหมุด"}
+          </p>
+        </div>
+        <ChevronRight size={16} className="mt-0.5 shrink-0" style={{ color: COLORS.textMuted }} />
+      </button>
 
       {/* ปุ่มแก้ไข/ลบ อยู่ชิดขวา แยกทีละสถานที่ */}
       <div className="flex shrink-0 items-center gap-1.5">

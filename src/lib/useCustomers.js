@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
+import { addressPayload } from "./thaiAddress.js";
 
 // ดึงลูกค้าพร้อมสถานที่ทั้งหมด (ตาราง customer_locations)
 const CUSTOMER_SELECT = "*, customer_locations(*)";
@@ -32,7 +33,7 @@ async function syncLocations(customerId, locations) {
     const l = locations[i];
     const payload = {
       name: l.name.trim(),
-      address: l.address?.trim() || null,
+      ...addressPayload(l),
       latitude: l.latitude ?? null,
       longitude: l.longitude ?? null,
       sort_order: i,
@@ -194,86 +195,86 @@ export function useCustomers() {
   }, []);
 
   // แก้ไขเฉพาะชื่อ-เบอร์ลูกค้า (ไม่แตะสถานที่)
-const updateCustomerInfo = useCallback(async (customerId, { name, phone }) => {
-  const { data, error } = await supabase
-    .from("customers")
-    .update({ name: name.trim(), phone: phone?.trim() || null })
-    .eq("customer_id", customerId)
-    .select(CUSTOMER_SELECT)
-    .single();
+  const updateCustomerInfo = useCallback(async (customerId, { name, phone }) => {
+    const { data, error } = await supabase
+      .from("customers")
+      .update({ name: name.trim(), phone: phone?.trim() || null })
+      .eq("customer_id", customerId)
+      .select(CUSTOMER_SELECT)
+      .single();
 
-  if (error) {
-    console.error("Update customer info failed:", error);
-    throw error;
-  }
+    if (error) {
+      console.error("Update customer info failed:", error);
+      throw error;
+    }
 
-  const row = normalize(data);
-  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? row : c))));
-  return row;
-}, []);
+    const row = normalize(data);
+    setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? row : c))));
+    return row;
+  }, []);
 
-// เพิ่มสถานที่ใหม่ 1 แห่ง
-const addLocation = useCallback(async (customerId, { name, address, latitude, longitude, sortOrder = 0 }) => {
-  const { error } = await supabase.from("customer_locations").insert({
-    customer_id: customerId,
-    name: name.trim(),
-    address: address?.trim() || null,
-    latitude: latitude ?? null,
-    longitude: longitude ?? null,
-    sort_order: sortOrder,
-  });
+  // เพิ่มสถานที่ใหม่ 1 แห่ง
+  const addLocation = useCallback(async (customerId, { name, latitude, longitude, sortOrder = 0, ...addr }) => {
+    const { error } = await supabase.from("customer_locations").insert({
+      customer_id: customerId,
+      name: name.trim(),
+      ...addressPayload(addr),
+      latitude: latitude ?? null,
+      longitude: longitude ?? null,
+      sort_order: sortOrder,
+    });
 
-  if (error) {
-    console.error("Add location failed:", error);
-    throw error;
-  }
+    if (error) {
+      console.error("Add location failed:", error);
+      throw error;
+    }
 
-  const full = await fetchCustomer(customerId);
-  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
-  return full;
-}, []);
+    const full = await fetchCustomer(customerId);
+    setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
+    return full;
+  }, []);
 
-// แก้ไขสถานที่ 1 แห่ง (ชื่อ/พิกัด)
-const updateLocation = useCallback(async (customerId, locationId, { name, address, latitude, longitude }) => {
-  const { error } = await supabase
-    .from("customer_locations")
-    .update({ name: name.trim(), address: address?.trim() || null, latitude: latitude ?? null, longitude: longitude ?? null })
-    .eq("location_id", locationId);
+  // แก้ไขสถานที่ 1 แห่ง (ชื่อ/พิกัด)
+  const updateLocation = useCallback(async (customerId, locationId, { name, latitude, longitude, ...addr }) => {
+    const { error } = await supabase
+      .from("customer_locations")
+      .update({ name: name.trim(), ...addressPayload(addr), latitude: latitude ?? null, longitude: longitude ?? null })
+      .eq("location_id", locationId);
 
-  if (error) {
-    console.error("Update location failed:", error);
-    throw error;
-  }
+    if (error) {
+      console.error("Update location failed:", error);
+      throw error;
+    }
 
-  const full = await fetchCustomer(customerId);
-  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
-  return full;
-}, []);
+    const full = await fetchCustomer(customerId);
+    setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
+    return full;
+  }, []);
 
-// ลบสถานที่ 1 แห่ง
-const deleteLocation = useCallback(async (customerId, locationId) => {
-  const { error } = await supabase.from("customer_locations").delete().eq("location_id", locationId);
+  // ลบสถานที่ 1 แห่ง
+  const deleteLocation = useCallback(async (customerId, locationId) => {
+    const { error } = await supabase.from("customer_locations").delete().eq("location_id", locationId);
 
-  if (error) {
-    console.error("Delete location failed:", error);
-    throw error;
-  }
+    if (error) {
+      console.error("Delete location failed:", error);
+      throw error;
+    }
 
-  const full = await fetchCustomer(customerId);
-  setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
-  return full;
-}, []);
+    const full = await fetchCustomer(customerId);
+    setCustomers((prev) => sortByName(prev.map((c) => (c.customer_id === customerId ? full : c))));
+    return full;
+  }, []);
   return {
-  customers,
-  loading,
-  loadCustomers,
-  findOrCreateCustomer,
-  updateCustomerPhone,
-  createCustomer,
-  updateCustomer,
-  updateCustomerInfo,
-  addLocation,
-  updateLocation,
-  deleteLocation,
-};
+    customers,
+    loading,
+    loadCustomers,
+    findOrCreateCustomer,
+    updateCustomerPhone,
+    createCustomer,
+    updateCustomer,
+    updateCustomerInfo,
+    addLocation,
+    updateLocation,
+    deleteLocation,
+  };
 }
