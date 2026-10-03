@@ -12,7 +12,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
-import { FieldLabel, TextInput, ErrorText } from "../components/ui.jsx";
+import { FieldLabel, TextInput, NameInput, ErrorText } from "../components/ui.jsx";
+import { isValidName, isValidPhone, formatPhone, cleanName, splitName } from "../lib/nameValidation.js";
 import MapPinPicker from "../components/MapPinPicker.jsx";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import CustomerLocationsPanel from "../components/CustomerLocationsPanel.jsx";
@@ -62,9 +63,17 @@ export default function CustomerDetailPage({
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [editing, setEditing] = useState(false);
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [errors, setErrors] = useState({ name: false, phone: false });
+  const [touched, setTouched] = useState({});
+  const touch = (k) => setTouched((t) => ({ ...t, [k]: true }));
+  const fnOk = isValidName(firstName);
+  const lnOk = isValidName(lastName);
+  const phOk = isValidPhone(phone);
+  const formValid = fnOk && lnOk && phOk;
+
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [savedMsg, setSavedMsg] = useState("");
@@ -88,9 +97,12 @@ export default function CustomerDetailPage({
   };
 
   const startEdit = () => {
-    setName(selected.name || "");
-    setPhone(selected.phone || "");
-    setErrors({ name: false, phone: false });
+    // ลูกค้าเดิมที่ยังไม่มี first_name/last_name ให้แยกจากชื่อเต็มก่อน
+    const fallback = splitName(selected.name);
+    setFirstName(selected.first_name ?? fallback.firstName);
+    setLastName(selected.last_name ?? fallback.lastName);
+    setPhone(formatPhone(selected.phone || ""));
+    setTouched({});
     setSaveError("");
     setEditing(true);
   };
@@ -98,19 +110,22 @@ export default function CustomerDetailPage({
   const cancelEdit = () => {
     setEditing(false);
     setSaveError("");
-    setErrors({ name: false, phone: false });
+    setTouched({});
   };
 
   const handleSave = async () => {
-    const next = { name: !name.trim(), phone: !phone.trim() };
-    setErrors(next);
-    if (next.name || next.phone) return;
-
+    if (!formValid) {
+      setTouched({ firstName: true, lastName: true, phone: true });
+      return;
+    }
     setSaving(true);
     setSaveError("");
     try {
-      await updateCustomerInfo(selected.customer_id, { name, phone });
-      // โหลดโครงงานใหม่ เพื่อให้ชื่อ/เบอร์ลูกค้าในหน้าอื่นอัปเดตตาม
+      await updateCustomerInfo(selected.customer_id, {
+        firstName: cleanName(firstName),
+        lastName: cleanName(lastName),
+        phone,
+      });
       onCustomerUpdated?.();
       setEditing(false);
       setSavedMsg("บันทึกข้อมูลลูกค้าเรียบร้อย");
@@ -222,7 +237,6 @@ export default function CustomerDetailPage({
                 </p>
               </div>
             </div>
-
             <CustomerLocationsPanel
               locations={locations}
               onView={(id) => setSelectedLocationId(id)}
@@ -246,19 +260,47 @@ export default function CustomerDetailPage({
         ) : (
           <>
             <div className="space-y-4 rounded-xl border p-5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-              <div>
-                <FieldLabel required>ชื่อ-นามสกุล</FieldLabel>
-                <TextInput value={name} onChange={(e) => setName(e.target.value)} error={errors.name} />
-                {errors.name && <ErrorText>กรุณากรอกชื่อ-นามสกุลลูกค้า</ErrorText>}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <FieldLabel required>ชื่อ</FieldLabel>
+                  <NameInput
+                    value={firstName}
+                    onChange={setFirstName}
+                    onBlur={() => touch("firstName")}
+                    error={touched.firstName && !fnOk}
+                    valid={fnOk}
+                  />
+                  {touched.firstName && !fnOk && <ErrorText>กรุณากรอกชื่อ</ErrorText>}
+                </div>
+                <div>
+                  <FieldLabel required>นามสกุล</FieldLabel>
+                  <NameInput
+                    value={lastName}
+                    onChange={setLastName}
+                    onBlur={() => touch("lastName")}
+                    error={touched.lastName && !lnOk}
+                    valid={lnOk}
+                  />
+                  {touched.lastName && !lnOk && <ErrorText>กรุณากรอกนามสกุล</ErrorText>}
+                </div>
               </div>
 
               <div>
                 <FieldLabel icon={Phone} required>เบอร์โทร</FieldLabel>
-                <TextInput type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} error={errors.phone} />
-                {errors.phone && <ErrorText>กรุณากรอกเบอร์โทรลูกค้า</ErrorText>}
+                <TextInput
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={12}
+                  placeholder="0XX-XXX-XXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
+                  onBlur={() => touch("phone")}
+                  error={touched.phone && !phOk}
+                  valid={phOk}
+                />
+                {touched.phone && !phOk && <ErrorText>กรุณากรอกเบอร์โทร 10 หลัก ขึ้นต้นด้วย 0</ErrorText>}
               </div>
             </div>
-
             <div className="mt-6 flex items-center justify-center gap-2">
               <button
                 type="button"
@@ -273,9 +315,9 @@ export default function CustomerDetailPage({
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-60"
-                style={{ background: COLORS.charcoal }}
+                disabled={saving || !formValid}
+                className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95 disabled:cursor-not-allowed"
+                style={{ background: saving || !formValid ? "#B9BCC2" : COLORS.charcoal }}
               >
                 <Save size={16} style={{ color: COLORS.amber }} />
                 {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}

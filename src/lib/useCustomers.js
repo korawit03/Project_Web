@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 import { addressPayload } from "./thaiAddress.js";
+import { joinName, splitName } from "./nameValidation.js";
 
 // ดึงลูกค้าพร้อมสถานที่ทั้งหมด (ตาราง customer_locations)
 const CUSTOMER_SELECT = "*, customer_locations(*)";
@@ -98,10 +99,15 @@ export function useCustomers() {
 
     if (dbMatch) {
       if (phone.trim() && phone.trim() !== dbMatch.phone) {
-        const { data: updated, error: updateError } = await supabase
+        const { firstName, lastName } = splitName(trimmedName);
+        const { data, error } = await supabase
           .from("customers")
-          .update({ phone: phone.trim() })
-          .eq("customer_id", dbMatch.customer_id)
+          .insert({
+            name: trimmedName,
+            first_name: firstName || null,
+            last_name: lastName || null,
+            phone: phone.trim() || null,
+          })
           .select(CUSTOMER_SELECT)
           .single();
         if (!updateError && updated) {
@@ -130,10 +136,15 @@ export function useCustomers() {
   }, []);
 
   // สร้างลูกค้าใหม่พร้อมสถานที่ (locations = [{ name, latitude, longitude }, ...])
-  const createCustomer = useCallback(async ({ name, phone, locations = [] }) => {
+  const createCustomer = useCallback(async ({ firstName, lastName, phone, locations = [] }) => {
     const { data, error } = await supabase
       .from("customers")
-      .insert({ name: name.trim(), phone: phone?.trim() || null })
+      .insert({
+        name: joinName(firstName, lastName),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone?.trim() || null,
+      })
       .select()
       .single();
 
@@ -195,10 +206,15 @@ export function useCustomers() {
   }, []);
 
   // แก้ไขเฉพาะชื่อ-เบอร์ลูกค้า (ไม่แตะสถานที่)
-  const updateCustomerInfo = useCallback(async (customerId, { name, phone }) => {
+  const updateCustomerInfo = useCallback(async (customerId, { firstName, lastName, phone }) => {
     const { data, error } = await supabase
       .from("customers")
-      .update({ name: name.trim(), phone: phone?.trim() || null })
+      .update({
+        name: joinName(firstName, lastName),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone?.trim() || null,
+      })
       .eq("customer_id", customerId)
       .select(CUSTOMER_SELECT)
       .single();

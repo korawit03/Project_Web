@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { COLORS } from "../lib/tokens.js";
+import { filterName } from "../lib/nameValidation.js";
 
 export function FieldLabel({ icon: Icon, required, children, tone = "charcoal" }) {
   return (
@@ -20,15 +21,44 @@ export function ErrorText({ children }) {
   );
 }
 
-export function TextInput({ error, ...props }) {
+export function TextInput({ error, valid, onFocus, onBlur, ...props }) {
+  const borderColor = error ? COLORS.red : valid ? COLORS.green : COLORS.border;
   return (
     <input
       {...props}
       className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none transition-shadow"
-      style={{ borderColor: error ? COLORS.red : COLORS.border }}
-      onFocus={(e) => (e.target.style.boxShadow = `0 0 0 2px ${(error ? COLORS.red : COLORS.amber)}33`)}
-      onBlur={(e) => (e.target.style.boxShadow = "none")}
+      style={{ borderColor }}
+      onFocus={(e) => {
+        e.target.style.boxShadow = `0 0 0 2px ${error ? COLORS.red : valid ? COLORS.green : COLORS.amber}33`;
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        e.target.style.boxShadow = "none";
+        onBlur?.(e);
+      }}
     />
+  );
+}
+
+// ช่องชื่อ/นามสกุล: กรองตัวอักษรต้องห้ามทันที และโชว์ข้อความแดงเมื่อมีการพิมพ์ตัวที่ไม่อนุญาต
+export function NameInput({ value, onChange, error, valid, ...props }) {
+  const [warn, setWarn] = useState(false);
+  return (
+    <>
+      <TextInput
+        {...props}
+        value={value}
+        error={error || warn}
+        valid={valid && !warn}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const filtered = filterName(raw);
+          setWarn(filtered !== raw);
+          onChange(filtered);
+        }}
+      />
+      {warn && <ErrorText>กรอกได้เฉพาะตัวอักษรเท่านั้น</ErrorText>}
+    </>
   );
 }
 
