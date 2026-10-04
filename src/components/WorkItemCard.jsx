@@ -219,10 +219,10 @@ export default function WorkItemCard({
             background: SECTION.work.bg,
           }}
         >
-          <FieldLabel icon={Tag} iconColor={SECTION.work.accent}>รายละเอียดชิ้นงาน</FieldLabel>
+          <FieldLabel icon={Tag} iconColor={SECTION.work.accent}>ขนาดของชิ้นงาน</FieldLabel>
           <PhotoDropzone
             tone={SECTION.work}
-            label="รูปประกอบรายละเอียดชิ้นงาน"
+            label="รูปประกอบขนาดชิ้นงาน"
             hint="ถ่ายรูปหรือเลือกรูปจากคลังภาพ เพื่อแสดงรายละเอียดและขนาดของชิ้นงาน"
             photos={item.workPhotos}
             onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
