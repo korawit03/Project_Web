@@ -263,7 +263,7 @@ export async function addField(type, input) {
   });
   if (options.length === 0) throw userError("ต้องมีตัวเลือกอย่างน้อย 1 ตัวเลือก (พิมพ์ 1 บรรทัดต่อ 1 ตัวเลือก)");
 
-    const dependsOn = input.dependsOn || null;
+  const dependsOn = input.dependsOn || null;
   if (dependsOn && !type.fields.some((f) => f.field_key === dependsOn)) {
     throw userError("ช่องที่เลือกให้ขึ้นกับ ไม่มีอยู่ในชิ้นงานนี้");
   }

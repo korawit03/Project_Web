@@ -11,6 +11,7 @@ import { Wrench, Plus, Layers, Save, AlertCircle, Phone, Users, X, Calendar, Map
 
 
 let itemCounter = 1;
+//newWorkItem(): สร้าง Object ชิ้นงานย่อยใหม่ โดยใช้ Date.now() ร่วมกับ itemCounter++ เพื่อสร้าง Unique ID ฝั่ง Frontend
 function newWorkItem() {
   return {
     id: `item-${Date.now()}-${itemCounter++}`,
@@ -162,7 +163,8 @@ export default function SiteWorkForm({
         return;
       }
       const customer = selectedCustomer;
-
+      
+      //บันทึกข้อมูลลงตาราง projects
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
         .insert({

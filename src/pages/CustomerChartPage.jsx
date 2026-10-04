@@ -8,14 +8,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
 } from "recharts";
 import { COLORS } from "../lib/tokens.js";
-
-const PIE_COLORS = ["#E8951C", "#3E8E5C", "#3B82C4", "#D14343", "#8B6FC0", "#2AA7A0", "#C77A0F", "#6B7078"];
 
 function ChartCard({ title, hint, children }) {
   return (
@@ -28,27 +22,48 @@ function ChartCard({ title, hint, children }) {
 }
 
 function Empty({ text }) {
+  return <p className="py-10 text-center text-sm" style={{ color: COLORS.textMuted }}>{text}</p>;
+}
+
+// กราฟแท่งแนวตั้ง ใช้ซ้ำได้ (data = [{ name, value }])
+function VBar({ data, color, unit, label }) {
   return (
-    <p className="py-10 text-center text-sm" style={{ color: COLORS.textMuted }}>{text}</p>
+    <div style={{ width: "100%", height: 320 }}>
+      <ResponsiveContainer>
+        <BarChart data={data} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} vertical={false} />
+          <XAxis
+            dataKey="name"
+            interval={0}
+            angle={-35}
+            textAnchor="end"
+            height={70}
+            tick={{ fontSize: 12 }}
+          />
+          <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+          <Tooltip formatter={(v) => [`${v} ${unit}`, label]} />
+          <Bar dataKey="value" fill={color} radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12 }} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-// หน้า 2.3 สรุปข้อมูลลูกค้าเป็นกราฟ (คำนวณจากข้อมูลจริง อัปเดตเองเมื่อมีการเพิ่ม/ลบ/แก้ไข)
 export default function CustomerChartPage({ customers = [], projects = [], loading }) {
-  // กราฟแท่ง: จำนวนโครงงานต่อลูกค้า (Top 10)
+  // จำนวนโครงงานต่อลูกค้า (Top 10)
   const projectData = useMemo(() => {
     const counts = {};
     projects.forEach((p) => {
       if (p.customerId != null) counts[p.customerId] = (counts[p.customerId] || 0) + 1;
     });
     return customers
-      .map((c) => ({ name: c.name, projects: counts[c.customer_id] || 0 }))
-      .filter((d) => d.projects > 0)
-      .sort((a, b) => b.projects - a.projects)
+      .map((c) => ({ name: c.name, value: counts[c.customer_id] || 0 }))
+      .filter((d) => d.value > 0)
+      .sort((a, b) => b.value - a.value)
       .slice(0, 10);
   }, [customers, projects]);
 
-  // กราฟวงกลม: ลูกค้าแยกตามจังหวัด (ใช้สถานที่แห่งแรกที่มีจังหวัด)
+  // จำนวนลูกค้าแยกตามจังหวัด (Top 10, ใช้สถานที่แห่งแรกที่มีจังหวัด)
   const provinceData = useMemo(() => {
     const counts = {};
     customers.forEach((c) => {
@@ -57,7 +72,8 @@ export default function CustomerChartPage({ customers = [], projects = [], loadi
     });
     return Object.entries(counts)
       .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
   }, [customers]);
 
   const totalLocations = customers.reduce((n, c) => n + (c.locations?.length || 0), 0);
@@ -84,45 +100,15 @@ export default function CustomerChartPage({ customers = [], projects = [], loadi
             {projectData.length === 0 ? (
               <Empty text="ยังไม่มีโครงงานให้สรุป" />
             ) : (
-              <div style={{ width: "100%", height: Math.max(220, projectData.length * 38 + 40) }}>
-                <ResponsiveContainer>
-                  <BarChart data={projectData} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(v) => [`${v} โครงงาน`, "จำนวน"]} />
-                    <Bar dataKey="projects" fill={COLORS.amber} radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <VBar data={projectData} color={COLORS.amber} unit="โครงงาน" label="จำนวน" />
             )}
           </ChartCard>
 
-          <ChartCard title="สัดส่วนลูกค้าแยกตามจังหวัด" hint='ลูกค้าที่ยังไม่มีข้อมูลจังหวัดจัดเป็น "ไม่ระบุ"'>
+          <ChartCard title="จำนวนลูกค้าแยกตามจังหวัด" hint='แสดงสูงสุด 10 อันดับแรก · ลูกค้าที่ยังไม่มีข้อมูลจังหวัดจัดเป็น "ไม่ระบุ"'>
             {provinceData.length === 0 ? (
               <Empty text="ยังไม่มีข้อมูลลูกค้า" />
             ) : (
-              <div style={{ width: "100%", height: 300 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={provinceData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="45%"
-                      outerRadius={90}
-                      label={({ value }) => value}
-                    >
-                      {provinceData.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v) => [`${v} คน`, "ลูกค้า"]} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
+              <VBar data={provinceData} color={COLORS.green} unit="คน" label="ลูกค้า" />
             )}
           </ChartCard>
         </>

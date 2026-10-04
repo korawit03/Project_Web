@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { PieChart as ChartIcon } from "lucide-react";
+import { BarChart3 as ChartIcon } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -8,10 +8,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  PieChart,
-  Pie,
-  Cell,
   Legend,
+  Cell,
 } from "recharts";
 import { COLORS } from "../lib/tokens.js";
 import { STATUS_OPTIONS, countByStatus } from "../lib/status.js";
@@ -30,16 +28,13 @@ function Empty({ text }) {
   return <p className="py-10 text-center text-sm" style={{ color: COLORS.textMuted }}>{text}</p>;
 }
 
-// หน้า 2.3 สรุปงาน: คำนวณจาก projects โดยตรง อัปเดตเองเมื่อเพิ่ม/ลบ/แก้ไข/เปลี่ยนสถานะ
 export default function ProjectChartPage({ projects = [], workCatalog = {}, loading }) {
   const allItems = useMemo(() => projects.flatMap((p) => p.items || []), [projects]);
 
-  // วงกลม: สัดส่วนสถานะชิ้นงาน (ใช้สีเดียวกับ STATUS_OPTIONS)
+  // จำนวนชิ้นงานแต่ละสถานะ (ใช้สีเดียวกับ STATUS_OPTIONS)
   const statusData = useMemo(() => {
     const counts = countByStatus(allItems);
-    return STATUS_OPTIONS.map((s) => ({ name: s.label, value: counts[s.value], color: s.color })).filter(
-      (d) => d.value > 0
-    );
+    return STATUS_OPTIONS.map((s) => ({ name: s.label, value: counts[s.value], color: s.color }));
   }, [allItems]);
 
   // แท่งซ้อน: จำนวนชิ้นงานต่อหมวดหมู่ แยกสีตามสถานะ
@@ -75,21 +70,23 @@ export default function ProjectChartPage({ projects = [], workCatalog = {}, load
         <p className="text-sm" style={{ color: COLORS.textMuted }}>กำลังโหลดข้อมูล...</p>
       ) : (
         <>
-          <ChartCard title="สัดส่วนสถานะชิ้นงาน" hint="นับจากชิ้นงานทั้งหมดในทุกโครงงาน">
-            {statusData.length === 0 ? (
+          <ChartCard title="จำนวนชิ้นงานแยกตามสถานะ" hint="นับจากชิ้นงานทั้งหมดในทุกโครงงาน">
+            {allItems.length === 0 ? (
               <Empty text="ยังไม่มีชิ้นงานให้สรุป" />
             ) : (
-              <div style={{ width: "100%", height: 300 }}>
+              <div style={{ width: "100%", height: 280 }}>
                 <ResponsiveContainer>
-                  <PieChart>
-                    <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={90} label={({ value }) => value}>
+                  <BarChart data={statusData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v) => [`${v} ชิ้น`, "จำนวน"]} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 12 }}>
                       {statusData.map((d) => (
                         <Cell key={d.name} fill={d.color} />
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(v) => [`${v} ชิ้น`, "จำนวน"]} />
-                    <Legend />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
@@ -99,14 +96,21 @@ export default function ProjectChartPage({ projects = [], workCatalog = {}, load
             {categoryData.length === 0 ? (
               <Empty text="ยังไม่มีชิ้นงานให้สรุป" />
             ) : (
-              <div style={{ width: "100%", height: Math.max(240, categoryData.length * 44 + 70) }}>
+              <div style={{ width: "100%", height: 340 }}>
                 <ResponsiveContainer>
-                  <BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} />
+                  <BarChart data={categoryData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      interval={0}
+                      angle={-25}
+                      textAnchor="end"
+                      height={60}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
                     <Tooltip formatter={(v, name) => [`${v} ชิ้น`, name]} />
-                    <Legend />
+                    <Legend verticalAlign="top" />
                     {STATUS_OPTIONS.map((s, i) => (
                       <Bar
                         key={s.value}
@@ -114,7 +118,7 @@ export default function ProjectChartPage({ projects = [], workCatalog = {}, load
                         name={s.label}
                         stackId="status"
                         fill={s.color}
-                        radius={i === STATUS_OPTIONS.length - 1 ? [0, 4, 4, 0] : 0}
+                        radius={i === STATUS_OPTIONS.length - 1 ? [4, 4, 0, 0] : 0}
                       />
                     ))}
                   </BarChart>
