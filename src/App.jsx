@@ -145,9 +145,53 @@ export default function App() {
       }
     }
 
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    await loadProjects();
+    return true;
   };
 
+  const handleDeleteProject = async (projectId) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return false;
+
+    try {
+      // 1) ลบไฟล์รูปออกจาก Storage
+      const allPhotos = project.items.flatMap((it) => [
+        ...(it.positionPhotos || []),
+        ...(it.workPhotos || []),
+      ]);
+      await deletePhotos(allPhotos);
+
+      // 2) ลบแถวรูปและชิ้นงานในฐานข้อมูล (กันกรณีไม่ได้ตั้ง ON DELETE CASCADE)
+      const itemIds = project.items.map((it) => it.id);
+      if (itemIds.length > 0) {
+        const { error: photoErr } = await supabase.from("site_photos").delete().in("item_id", itemIds);
+        if (photoErr) throw photoErr;
+
+        const { error: itemErr } = await supabase.from("job_items").delete().eq("project_id", projectId);
+        if (itemErr) throw itemErr;
+      }
+
+      // 3) ลบโครงงาน (.select() เพื่อเช็กว่าลบได้จริง กัน RLS บล็อกแบบเงียบ ๆ)
+      const { data, error: projectErr } = await supabase
+        .from("projects")
+        .delete()
+        .eq("project_id", projectId)
+        .select();
+      if (projectErr) throw projectErr;
+      if (!data || data.length === 0) {
+        throw new Error("ลบไม่สำเร็จ: ไม่มีแถวถูกลบ (ตรวจสิทธิ์ RLS ของตาราง projects)");
+      }
+
+      // 4) เอาออกจาก state
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      return true;
+    } catch (err) {
+      console.error("Delete project failed:", err);
+      alert("ลบโครงงานไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      await loadProjects();
+      return false;
+    }
+  };
   const handleItemStatusChange = async (projectId, itemId, status) => {
     setProjects((prev) =>
       prev.map((p) =>
