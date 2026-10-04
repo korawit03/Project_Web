@@ -7,6 +7,7 @@ import {
   Plus,
   Settings,
   BarChart3,
+  PieChart
 } from "lucide-react";
 
 // เมนูหลักของระบบ - Sidebar (เดสก์ท็อป) และ MobileBottomNav (มือถือ) ใช้ร่วมกัน
@@ -29,6 +30,7 @@ export const MENU = [
     children: [
       { key: "form", label: "เพิ่มโครงงาน", icon: Plus },
       { key: "project-detail", label: "รายละเอียดงาน", icon: ListChecks },
+      { key: "project-chart", label: "สรุปงาน", icon: PieChart },
     ],
   },
   {

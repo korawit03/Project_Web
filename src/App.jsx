@@ -15,6 +15,7 @@ import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
 import CatalogTypesPage from "./pages/CatalogTypesPage.jsx";
 import CustomerChartPage from "./pages/CustomerChartPage.jsx";
+import ProjectChartPage from "./pages/ProjectChartPage.jsx";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ใช้งาน ({ id, url, path, name })
 // ปรับปรุงให้รองรับทั้ง image_url และ url เพื่อป้องกันปัญหารูปไม่ขึ้น
@@ -125,48 +126,23 @@ export default function App() {
       return false;
     }
 
-    const { error: deleteError } = await supabase
-      .from("job_items")
-      .delete()
-      .eq("project_id", projectId);
-
-    if (deleteError) {
-      console.error("Delete old job_items failed:", deleteError);
-      alert("อัปเดตข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      return false;
-    }
+    const oldItemIds = (projects.find((p) => p.id === projectId)?.items || []).map((it) => it.id);
 
     try {
       await saveAllWorkItems(updatedProject.items, projectId, workCatalog);
     } catch (err) {
       console.error("Insert updated job_items failed:", err);
-      alert("อัปเดตข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      alert("อัปเดตข้อมูลไม่สำเร็จ ข้อมูลเดิมยังอยู่ครบ กรุณาลองใหม่อีกครั้ง");
+      await loadProjects();
       return false;
     }
 
-    await loadProjects();
-    return true;
-  };
-
-  const handleDeleteProject = async (projectId) => {
-    const projectToDelete = projects.find((p) => p.id === projectId);
-
-    if (projectToDelete) {
-      const allPhotos = projectToDelete.items.flatMap((it) => [
-        ...(it.positionPhotos || []),
-        ...(it.workPhotos || []),
-      ]);
-      if (allPhotos.length > 0) {
-        await deletePhotos(allPhotos);
+    if (oldItemIds.length > 0) {
+      const { error: deleteError } = await supabase.from("job_items").delete().in("item_id", oldItemIds);
+      if (deleteError) {
+        console.error("Delete old job_items failed:", deleteError);
+        alert("บันทึกแล้ว แต่ลบชิ้นงานเดิมไม่สำเร็จ อาจมีชิ้นงานซ้ำ กรุณาตรวจสอบ");
       }
-    }
-
-    const { error } = await supabase.from("projects").delete().eq("project_id", projectId);
-
-    if (error) {
-      console.error("Delete project failed:", error);
-      alert("ลบข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
-      return;
     }
 
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
@@ -234,6 +210,12 @@ export default function App() {
               customers={customers}
               projects={projects}
               loading={customersLoading}
+            />
+          ) : activeView === "project-chart" ? (
+            <ProjectChartPage
+              projects={projects}
+              workCatalog={workCatalog}
+              loading={loading}
             />
           ) : activeView === "catalog-types" ? (
             <CatalogTypesPage onChanged={reloadCatalog} />

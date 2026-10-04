@@ -103,12 +103,19 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                            }
                            : {}; // ไม่ได้เลือก = คงค่าเดิมของโครงงาน
 
-                  const ok = await onUpdate({
-                           ...project,
-                           ...locationPatch,
-                           items: editItems,
-                  }); if (ok) setEditing(false);
+                  setSaving(true);
+                  try {
+                           const ok = await onUpdate({
+                                    ...project,
+                                    ...locationPatch,
+                                    items: editItems,
+                           });
+                           if (ok) setEditing(false);
+                  } finally {
+                           setSaving(false);
+                  }
          };
+
 
          const handleDelete = async () => {
                   const confirmed = window.confirm(
