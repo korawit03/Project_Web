@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 import { addressPayload } from "./thaiAddress.js";
-import { joinName, splitName } from "./nameValidation.js";
+import { joinName } from "./nameValidation.js";
 
 // ดึงลูกค้าพร้อมสถานที่ทั้งหมด (ตาราง customer_locations)
 const CUSTOMER_SELECT = "*, customer_locations(*)";
@@ -83,6 +83,7 @@ export function useCustomers() {
   }, [loadCustomers]);
 
   // หาลูกค้าเดิมจากชื่อ ถ้าไม่มีให้สร้างใหม่ (ใช้ตอนแก้โครงงาน)
+  // หาลูกค้าเดิมจากชื่อ ถ้าไม่มีให้สร้างใหม่ (ใช้ตอนแก้โครงงาน)
   const findOrCreateCustomer = useCallback(async (name, phone = "") => {
     const trimmedName = name.trim();
 
@@ -98,23 +99,23 @@ export function useCustomers() {
     }
 
     if (dbMatch) {
+      // เบอร์ใหม่ไม่ตรงกับในฐานข้อมูล -> อัปเดตเฉพาะเบอร์โทร
       if (phone.trim() && phone.trim() !== dbMatch.phone) {
-        const { firstName, lastName } = splitName(trimmedName);
-        const { data, error } = await supabase
+        const { data: updated, error: updateError } = await supabase
           .from("customers")
-          .insert({
-            name: trimmedName,
-            first_name: firstName || null,
-            last_name: lastName || null,
-            phone: phone.trim() || null,
-          })
+          .update({ phone: phone.trim() })
+          .eq("customer_id", dbMatch.customer_id)
           .select(CUSTOMER_SELECT)
           .single();
-        if (!updateError && updated) {
-          const row = normalize(updated);
-          setCustomers((prev) => sortByName([...prev.filter((c) => c.customer_id !== row.customer_id), row]));
-          return row;
+
+        if (updateError) {
+          console.error("Update customer phone failed:", updateError);
+          throw updateError;
         }
+
+        const row = normalize(updated);
+        setCustomers((prev) => sortByName([...prev.filter((c) => c.customer_id !== row.customer_id), row]));
+        return row;
       }
       return normalize(dbMatch);
     }

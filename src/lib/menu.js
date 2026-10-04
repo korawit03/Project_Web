@@ -6,6 +6,7 @@ import {
   ListChecks,
   Plus,
   Settings,
+  BarChart3,
 } from "lucide-react";
 
 // เมนูหลักของระบบ - Sidebar (เดสก์ท็อป) และ MobileBottomNav (มือถือ) ใช้ร่วมกัน
@@ -18,6 +19,7 @@ export const MENU = [
     children: [
       { key: "customer-list", label: "รายละเอียดลูกค้า", icon: Contact },
       { key: "customer-new", label: "เพิ่มลูกค้า", icon: UserPlus },
+      { key: "customer-chart", label: "สรุปลูกค้า", icon: BarChart3 },
     ],
   },
   {

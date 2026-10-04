@@ -14,6 +14,7 @@ import { deletePhotos } from "./lib/storage.js";
 import CustomerDetailPage from "./pages/CustomerdetailPage.jsx";
 import ProjectDetailPage from "./pages/ProjectDetailPage.jsx";
 import CatalogTypesPage from "./pages/CatalogTypesPage.jsx";
+import CustomerChartPage from "./pages/CustomerChartPage.jsx";
 
 // แปลงรูปจาก site_photos ให้เป็น shape เดิมที่ใช้งาน ({ id, url, path, name })
 // ปรับปรุงให้รองรับทั้ง image_url และ url เพื่อป้องกันปัญหารูปไม่ขึ้น
@@ -227,6 +228,12 @@ export default function App() {
               loading={loading}
               onItemStatusChange={handleItemStatusChange}
               workCatalog={workCatalog}
+            />
+          ) : activeView === "customer-chart" ? (
+            <CustomerChartPage
+              customers={customers}
+              projects={projects}
+              loading={customersLoading}
             />
           ) : activeView === "catalog-types" ? (
             <CatalogTypesPage onChanged={reloadCatalog} />

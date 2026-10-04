@@ -120,6 +120,7 @@ function LocationRow({ location, onView, onSave, onDelete }) {
       <LocationEditForm
         initialName={location.name}
         initialAddr={addrFromLocation(location)}
+        initialLatitude={location.latitude}
         initialLongitude={location.longitude}
         onCancel={() => setEditing(false)}
         onSave={async (patch) => {
