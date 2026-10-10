@@ -163,7 +163,7 @@ export default function SiteWorkForm({
         return;
       }
       const customer = selectedCustomer;
-      
+
       //บันทึกข้อมูลลงตาราง projects
       const { data: projectRow, error: projectError } = await supabase
         .from("projects")
@@ -268,16 +268,7 @@ export default function SiteWorkForm({
                 · {customerProjects.length} โครงงาน
               </span>
             </span>
-            {/* ปุ่มยกเลิกการเลือกลูกค้า หน้า เพิ่มโครงงาน */}
-            {/* <button
-              type="button"
-              onClick={resetCustomerSelection}
-              className="flex items-center gap-1 text-xs font-medium"
-              style={{ color: COLORS.textMuted }}
-            >
-              <X size={12} />
-              เปลี่ยนลูกค้า
-            </button> */}
+            
           </div>
 
           {customerProjects.length > 0 ? (
