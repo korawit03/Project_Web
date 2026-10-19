@@ -10,6 +10,7 @@ import {
   Save,
   X,
   AlertCircle,
+  
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, TextInput, NameInput, ErrorText } from "../components/ui.jsx";
@@ -65,6 +66,7 @@ export default function CustomerDetailPage({
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [Nickname, setNickname] = useState("");
   const [phone, setPhone] = useState("");
   const [touched, setTouched] = useState({});
   const touch = (k) => setTouched((t) => ({ ...t, [k]: true }));
@@ -106,7 +108,7 @@ export default function CustomerDetailPage({
     setSaveError("");
     setEditing(true);
   };
-
+  
   const cancelEdit = () => {
     setEditing(false);
     setSaveError("");
@@ -125,6 +127,7 @@ export default function CustomerDetailPage({
         firstName: cleanName(firstName),
         lastName: cleanName(lastName),
         phone,
+        Nickanme,
       });
       onCustomerUpdated?.();
       setEditing(false);
@@ -228,6 +231,7 @@ export default function CustomerDetailPage({
                 <p className="flex items-center gap-1 text-xs mb-0.5" style={{ color: COLORS.textMuted }}>
                   <Phone size={11} /> เบอร์โทร
                 </p>
+
                 <p className="text-sm font-medium" style={{ color: COLORS.charcoal }}>
                   {selected.phone ? (
                     <a href={`tel:${selected.phone}`} style={{ color: COLORS.amberDark }}>{selected.phone}</a>

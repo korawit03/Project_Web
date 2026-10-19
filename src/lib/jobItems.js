@@ -20,8 +20,8 @@ export async function saveWorkItem(item, sortOrder, projectId, workCatalog) {
       status: item.status || DEFAULT_STATUS,
       sort_order: sortOrder,
       item_name: item.itemName?.trim() || null,
-      position_detail: item.positionDetail?.trim() || null,   // เพิ่ม
-      work_detail: item.workDetail?.trim() || null,           // เพิ่ม
+      position_detail: item.positionDetail?.trim() || null,   
+      work_detail: item.workDetail?.trim() || null,          
     })
     .select()
     .single();

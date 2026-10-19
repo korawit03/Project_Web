@@ -10,6 +10,7 @@ import {
          Save,
          X,
          Plus,
+         Navigation,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { FieldLabel, LocationSelect } from "./ui.jsx";
@@ -62,7 +63,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
          const [editItems, setEditItems] = useState(() =>
                   project.items.map((it) => ({ ...it, answers: { ...it.answers } }))
          );
-
+         // ฟอร์มแก้ไขโครงงาน: กดปุ่มแก้ไข = เปิดฟอร์มแก้ไข
          const startEdit = () => {
                   setEditLocationId(project.locationId ?? "");
                   setEditItems(project.items.map((it) => ({ ...it, answers: { ...it.answers } })));
@@ -71,18 +72,18 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                   setEditing(true);
                   setExpanded(true);
          };
-
+         // ฟอร์มแก้ไขโครงงาน: กดปุ่มยกเลิก = ปิดฟอร์มแก้ไข
          const cancelEdit = () => {
                   setEditing(false);
                   setSubmitted(false);
                   setErrors({ projectName: false, items: {} });
          };
-
+         // ฟอร์มแก้ไขโครงงาน: อัปเดตชิ้นงานที่แก้ไขแล้ว
          const updateEditItem = (id, next) =>
                   setEditItems((prev) => prev.map((it) => (it.id === id ? next : it)));
          const removeEditItem = (id) => setEditItems((prev) => prev.filter((it) => it.id !== id));
          const addEditItem = () => setEditItems((prev) => [...prev, newWorkItem()]);
-
+         
          const handleSaveEdit = async () => {
                   setSubmitted(true);
                   // ฟอร์มแก้ไขนี้ไม่ได้ให้เปลี่ยนชื่อลูกค้า จึงส่งชื่ออะไรก็ได้ที่ไม่ว่างเพื่อผ่านการตรวจ
@@ -90,9 +91,11 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                   setErrors(nextErrors);
                   if (hasErrors(nextErrors)) return;
 
+                  // ตรวจสอบว่าผู้ใช้ยืนยันการแก้ไขโครงงานหรือไม่
                   const confirmed = window.confirm("ยืนยันบันทึกการแก้ไขโครงงานนี้ใช่หรือไม่?");
                   if (!confirmed) return;
 
+                  // ตรวจสอบว่าผู้ใช้เลือกสถานที่หน้างานหรือไม่
                   const chosen = locations.find((l) => String(l.location_id) === String(editLocationId));
                   const locationPatch = chosen
                            ? {
@@ -116,7 +119,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                   }
          };
 
-
+         // ฟอร์มแก้ไขโครงงาน: ลบโครงงาน
          const handleDelete = async () => {
                   const confirmed = window.confirm(
                            "ต้องการลบโครงงานนี้ใช่ไหม? ข้อมูลชิ้นงานและรูปภาพทั้งหมดในโครงงานนี้จะถูกลบถาวร"
@@ -129,8 +132,32 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                            setDeleting(false);
                   }
          };
-
+         // จำนวนชิ้นงานในโครงงานนี้
          const itemCount = project.items?.length || 0;
+
+         const locFromList = locations.find(
+                  (l) => l.location_id != null && String(l.location_id) === String(project.locationId)
+         );
+         const resolvedAddress = project.locationAddress || locFromList?.address || locFromList?.address_line || "";
+         const rawLat = project.latitude ?? locFromList?.latitude;
+         const rawLng = project.longitude ?? locFromList?.longitude;
+
+         const lat = rawLat != null && rawLat !== "" ? Number(rawLat) : null;
+         const lng = rawLng != null && rawLng !== "" ? Number(rawLng) : null;
+         const hasCoords =
+                  lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+
+         const locationQuery = [project.location, resolvedAddress]
+                  .filter(Boolean)
+                  .map((s) => String(s).trim())
+                  .filter(Boolean)
+                  .join(" ");
+
+         const navUrl = hasCoords
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                  : locationQuery
+                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`
+                  : null;
 
          return (
                   <div className="p-4">
@@ -138,7 +165,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                     <button
                                              type="button"
                                              onClick={() => setExpanded((v) => !v)}
-                                             className="flex flex-1 min-w-0 items-start gap-2 text-left"
+                                             className="flex flex-1 min-w-0 items-start gap-2 text-left cursor-pointer"
                                     >
                                              <span
                                                       className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
@@ -146,33 +173,29 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                              >
                                                       <Layers size={13} style={{ color: COLORS.amber }} />
                                              </span>
-                                             <span className="min-w-0">
-                                                      <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm font-medium" style={{ color: COLORS.charcoal }}>
-                                                               <span className="flex items-center gap-1">
-                                                                        <MapPin size={12} style={{ color: COLORS.textMuted }} />
-
-                                                                        {project.location ? (
-                                                                                 <>สถานที่หน้างาน: {project.location}</>
-                                                                        ) : (
-                                                                                 <span style={{ color: COLORS.textMuted }}>(ยังไม่ระบุสถานที่หน้างาน)</span>
-                                                                        )}
-                                                                        {project.projectName && (
-                                                                                 <span className="block text-sm font-semibold" style={{ color: COLORS.charcoal }}>
-                                                                                          {project.projectName}
-                                                                                 </span>
-                                                                        )}
-                                                                        <span className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
-                                                                                 <Calendar size={11} />
-                                                                                 เพิ่มโครงงานเมื่อ: {formatDate(project.savedAt)}
-                                                                        </span>
-                                                               </span>
-                                                               <span className="text-xs font-normal" style={{ color: COLORS.textMuted }}>
-                                                                        ทั้งหมด {itemCount} ชิ้นงาน
-                                                               </span>
+                                             <span className="min-w-0 flex-1">
+                                                      {/* ชื่องานเด่นด้านบน */}
+                                                      <span className="block text-sm font-bold truncate" style={{ color: COLORS.charcoal }}>
+                                                               {project.projectName || "(ไม่ระบุชื่อโครงงาน)"}
                                                       </span>
-                                                      <span className="mt-0.5 flex items-center gap-1 text-xs" style={{ color: COLORS.textMuted }}>
-                                                               <Calendar size={11} />
-                                                               บันทึกล่าสุด: {formatDate(project.updatedAt || project.savedAt)}
+
+                                                      {/* สถานที่ จำนวนชิ้นงาน และวันที่บันทึก */}
+                                                      <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs" style={{ color: COLORS.textMuted }}>
+                                                               <span className="flex items-center gap-1">
+                                                                        <MapPin size={12} style={{ color: COLORS.amberDark }} />
+                                                                        {project.location ? (
+                                                                                 <span style={{ color: COLORS.charcoalSoft }}>{project.location}</span>
+                                                                        ) : (
+                                                                                 <span>(ยังไม่ระบุสถานที่)</span>
+                                                                        )}
+                                                               </span>
+                                                               <span>·</span>
+                                                               <span>{itemCount} ชิ้นงาน</span>
+                                                               <span>·</span>
+                                                               <span className="flex items-center gap-1">
+                                                                        <Calendar size={11} />
+                                                                        {formatDate(project.updatedAt || project.savedAt)}
+                                                               </span>
                                                       </span>
                                              </span>
                                              {expanded ? (
@@ -181,13 +204,25 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                       <ChevronDown size={16} className="mt-1 shrink-0" style={{ color: COLORS.textMuted }} />
                                              )}
                                     </button>
-
+                                             
                                     {!editing && (
                                              <div className="flex shrink-0 items-center gap-2">
+                                                      {navUrl && (
+                                                               <a
+                                                                        href={navUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        title="เปิดนำทาง Google Maps"
+                                                                        className="flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+                                                               >
+                                                                        <Navigation size={12} className="fill-emerald-600" />
+                                                                        <span>นำทาง</span>
+                                                               </a>
+                                                      )}
                                                       <button
                                                                type="button"
                                                                onClick={startEdit}
-                                                               className="flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium"
+                                                               className="flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium cursor-pointer"
                                                                style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
                                                       >
                                                                <Pencil size={12} />
@@ -197,7 +232,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                type="button"
                                                                onClick={handleDelete}
                                                                disabled={deleting}
-                                                               className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white disabled:opacity-60"
+                                                               className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium text-white disabled:opacity-60 cursor-pointer"
                                                                style={{ background: COLORS.red }}
                                                       >
                                                                <Trash2 size={12} />
@@ -209,6 +244,38 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
 
                            {expanded && !editing && (
                                     <div className="mt-4 space-y-3 border-t pt-4" style={{ borderColor: COLORS.border }}>
+                                             {(project.location || resolvedAddress) && (
+                                                      <div
+                                                               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5 text-xs"
+                                                               style={{ borderColor: COLORS.border, background: "#FAF8F3" }}
+                                                      >
+                                                               <div className="flex items-start gap-1.5 min-w-0 flex-1">
+                                                                        <MapPin size={14} className="mt-0.5 shrink-0 text-amber-600" />
+                                                                        <div className="min-w-0">
+                                                                                 <p className="font-semibold" style={{ color: COLORS.charcoal }}>
+                                                                                          {project.location || "สถานที่หน้างาน"}
+                                                                                 </p>
+                                                                                 {resolvedAddress && (
+                                                                                          <p className="text-[11px] leading-relaxed" style={{ color: COLORS.charcoalSoft }}>
+                                                                                                   {resolvedAddress}
+                                                                                          </p>
+                                                                                 )}
+                                                                        </div>
+                                                               </div>
+                                                               {navUrl && (
+                                                                        <a
+                                                                                 href={navUrl}
+                                                                                 target="_blank"
+                                                                                 rel="noopener noreferrer"
+                                                                                 className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-semibold text-white shadow-xs transition-opacity hover:opacity-90 cursor-pointer"
+                                                                                 style={{ background: "#059669" }}
+                                                                        >
+                                                                                 <Navigation size={12} className="fill-white" />
+                                                                                 เปิดนำทาง Google Maps
+                                                                        </a>
+                                                               )}
+                                                      </div>
+                                             )}
                                              {project.items.map((it, idx) => (
                                                       <div
                                                                key={it.id}
@@ -306,7 +373,7 @@ export default function ProjectCard({ project, onUpdate, onDelete, workCatalog, 
                                                                ชิ้นงาน
                                                       </div>
                                              </div>
-
+                                                               
                                              <div className="space-y-4">
                                                       {editItems.map((item, idx) => (
                                                                <WorkItemCard

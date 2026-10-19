@@ -1,8 +1,30 @@
 import React, { useState, useMemo } from "react";
-import { ListChecks, Search, Eye, ArrowLeft, MapPin, Users, Layers, ChevronDown, ChevronUp, Image as ImageIcon, History, Tag } from "lucide-react"; import { COLORS } from "../lib/tokens.js";
+import {
+  ListChecks,
+  Search,
+  Eye,
+  ArrowLeft,
+  MapPin,
+  Users,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  Image as ImageIcon,
+  History,
+  Tag,
+  Navigation,
+  ExternalLink,
+  Phone,
+  Copy,
+  Check,
+  Map as MapIcon,
+} from "lucide-react";
+import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
 import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
 import PhotoLightbox from "../components/PhotoLightbox.jsx";
+import { formatPhone } from "../lib/nameValidation.js";
+import MapPinPicker from "../components/MapPinPicker.jsx";
 
 function getOverallStatus(items) {
   const list = items || [];
@@ -134,6 +156,200 @@ function DetailSection({ icon: Icon, title, photos, mainText, mainItalic = false
     </div>
   );
 }
+function ProjectLocationCard({ project }) {
+  const [copied, setCopied] = useState(false);
+  const [showMiniMap, setShowMiniMap] = useState(false);
+
+  const lat =
+    project.latitude != null && project.latitude !== "" ? Number(project.latitude) : null;
+  const lng =
+    project.longitude != null && project.longitude !== "" ? Number(project.longitude) : null;
+  const hasCoords =
+    lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
+
+  const locationQuery = [project.location, project.locationAddress]
+    .filter(Boolean)
+    .map((s) => String(s).trim())
+    .filter(Boolean)
+    .join(" ");
+
+  // โหมดนำทาง (Turn-by-turn directions)
+  const navUrl = hasCoords
+    ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+    : locationQuery
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`
+    : null;
+
+  // โหมดเปิดดูหมุด (Pin Search)
+  const pinUrl = hasCoords ? `https://www.google.com/maps?q=${lat},${lng}` : null;
+
+  const handleCopyCoords = () => {
+    if (!hasCoords) return;
+    navigator.clipboard?.writeText(`${lat}, ${lng}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div
+      className="mb-6 rounded-xl border p-4 sm:p-5 shadow-xs"
+      style={{ borderColor: COLORS.border, background: COLORS.surface }}
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        {/* รายละเอียดสถานที่ */}
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: "#FCEFDB", color: COLORS.amberDark }}
+            >
+              <MapPin size={16} />
+            </span>
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: COLORS.amberDark }}>
+              สถานที่หน้างาน & แผนที่นำทาง
+            </span>
+            {hasCoords ? (
+              <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
+                มีพิกัด GPS
+              </span>
+            ) : (
+              <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 border border-amber-200">
+                ยังไม่มีพิกัด GPS
+              </span>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-base font-bold" style={{ color: COLORS.charcoal }}>
+              {project.location || (project.locationAddress ? "หน้างาน" : "(ยังไม่ระบุชื่อสถานที่หน้างาน)")}
+            </h3>
+            {project.locationAddress && (
+              <p className="mt-0.5 text-xs leading-relaxed" style={{ color: COLORS.charcoalSoft }}>
+                {project.locationAddress}
+              </p>
+            )}
+          </div>
+
+          {/* พิกัด GPS & ปุ่มคัดลอก */}
+          {hasCoords ? (
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs" style={{ color: COLORS.textMuted }}>
+              <span className="font-mono text-[11px] rounded bg-gray-100 px-2 py-0.5 border" style={{ borderColor: COLORS.border }}>
+                พิกัด: {lat.toFixed(6)}, {lng.toFixed(6)}
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyCoords}
+                className="flex items-center gap-1 text-[11px] font-medium hover:underline cursor-pointer"
+                style={{ color: copied ? COLORS.green : COLORS.charcoalSoft }}
+              >
+                {copied ? (
+                  <>
+                    <Check size={12} className="text-emerald-600" />
+                    <span className="text-emerald-600 font-semibold">คัดลอกพิกัดแล้ว!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={12} />
+                    <span>คัดลอกพิกัด</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs italic pt-0.5" style={{ color: COLORS.textMuted }}>
+              * ยังไม่ได้ระบุพิกัด GPS ที่แน่นอน (ระบบจะช่วยเปิดค้นหาจากชื่อสถานที่หรือที่อยู่ใน Google Maps)
+            </p>
+          )}
+
+          {/* ข้อมูลการติดต่อลูกค้า */}
+          {project.customerPhone && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <a
+                href={`tel:${project.customerPhone}`}
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold hover:bg-gray-50 transition-colors"
+                style={{ borderColor: COLORS.border, color: COLORS.charcoal }}
+              >
+                <Phone size={13} className="text-emerald-600" />
+                <span>โทรหาลูกค้า: {formatPhone(project.customerPhone)}</span>
+              </a>
+            </div>
+          )}
+        </div>
+
+        {/* ปุ่มนำทางและการกระทำ */}
+        <div className="flex flex-col gap-2 shrink-0 sm:w-60">
+          {navUrl ? (
+            <a
+              href={navUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all hover:opacity-95 hover:shadow-md cursor-pointer"
+              style={{
+                background: hasCoords
+                  ? "linear-gradient(135deg, #059669 0%, #10B981 100%)"
+                  : "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)",
+              }}
+            >
+              <Navigation size={18} className="fill-white" />
+              <span>{hasCoords ? "เปิดนำทาง (Google Maps)" : "ค้นหาใน Google Maps"}</span>
+            </a>
+          ) : (
+            <div
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 py-2.5 text-xs"
+              style={{ borderColor: COLORS.border, color: COLORS.textMuted }}
+            >
+              <MapPin size={13} />
+              <span>ไม่มีข้อมูลสถานที่</span>
+            </div>
+          )}
+
+          <div className="flex w-full gap-2">
+            {pinUrl && (
+              <a
+                href={pinUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium hover:bg-gray-50 transition-colors"
+                style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
+              >
+                <ExternalLink size={12} />
+                <span>เปิดดูหมุด</span>
+              </a>
+            )}
+
+            {hasCoords && (
+              <button
+                type="button"
+                onClick={() => setShowMiniMap((v) => !v)}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border bg-white px-2.5 py-1.5 text-xs font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft }}
+              >
+                <MapIcon size={12} />
+                <span>{showMiniMap ? "ซ่อนแผนที่" : "ดูแผนที่ย่อ"}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* แผนที่ย่อในหน้าเว็บ (Toggle ได้) */}
+      {showMiniMap && hasCoords && (
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: COLORS.border }}>
+          <div className="flex items-center justify-between pb-2">
+            <span className="text-xs font-semibold" style={{ color: COLORS.charcoal }}>
+              ตำแหน่งหมุดหน้างานบนแผนที่
+            </span>
+            <span className="text-[11px]" style={{ color: COLORS.textMuted }}>
+              กดปุ่ม "เปิดนำทาง" ด้านบนเพื่อเริ่ม GPS Turn-by-turn บน Google Maps
+            </span>
+          </div>
+          <MapPinPicker latitude={lat} longitude={lng} readOnly={true} height={220} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProjectDetailPage({ projects, loading, onItemStatusChange, workCatalog = {} }) {
   const [search, setSearch] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -187,6 +403,8 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
           title={selectedProject.projectName || "(ไม่ระบุชื่อโครงงาน)"}
           subtitle={`ลูกค้า: ${selected.name}${total > 0 ? ` · เสร็จแล้ว ${done} จาก ${total} ชิ้นงาน` : ""}`}
         />
+
+        <ProjectLocationCard project={selectedProject} />
         <div className="mb-4 flex justify-end">
           <button
             type="button"
@@ -299,9 +517,10 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                               {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </span>
                           </button>
-
+                        
                           <div className="w-full sm:w-auto">
                             {onItemStatusChange ? (
+                              //กดเปลี่ยนสถานะชิ้นงาน
                               <StatusSegment
                                 value={item.status}
                                 onChange={(value) => onItemStatusChange(p.id, item.id, value)}
@@ -396,49 +615,95 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
       ) : (
         <div className="overflow-hidden rounded-xl border" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
           <div
-            className="hidden items-center gap-4 border-b px-4 py-2.5 text-xs font-medium md:grid md:grid-cols-[1fr_1.2fr_9rem_2.5rem]"
+            className="hidden items-center gap-4 border-b px-4 py-2.5 text-xs font-medium md:grid md:grid-cols-[1fr_1.3fr_9rem_5rem]"
             style={{ borderColor: COLORS.border, background: "#FAF8F3", color: COLORS.textMuted }}
           >
             <span>ลูกค้า</span>
-            <span>โครงงาน</span>
+            <span>โครงงาน & สถานที่</span>
             <span>สถานะ</span>
-            <span />
+            <span className="text-right">จัดการ</span>
           </div>
 
           {visibleGroups.map((g, gi) => (
-            g.projects.map((p, pi) => (
-              <div
-                key={`${g.key}-${p.id}`}
-                onClick={() => setSelectedProjectId(p.id)}
-                className={`grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[1fr_1.2fr_9rem_2.5rem] ${gi > 0 || pi > 0 ? "border-t" : ""}`}
-                style={{ borderColor: COLORS.border }}
-              >
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <Users size={13} className="shrink-0" style={{ color: COLORS.amber }} />
-                  <span className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
-                    {g.name}
-                  </span>
-                </div>
+            g.projects.map((p, pi) => {
+              const lat = p.latitude != null && p.latitude !== "" ? Number(p.latitude) : null;
+              const lng = p.longitude != null && p.longitude !== "" ? Number(p.longitude) : null;
+              const hasCoords =
+                lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0);
 
-                <button
-                  type="button"
+              const locationQuery = [p.location, p.locationAddress]
+                .filter(Boolean)
+                .map((s) => String(s).trim())
+                .filter(Boolean)
+                .join(" ");
+
+              const navUrl = hasCoords
+                ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                : locationQuery
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationQuery)}`
+                : null;
+
+              return (
+                <div
+                  key={`${g.key}-${p.id}`}
                   onClick={() => setSelectedProjectId(p.id)}
-                  aria-label={`ดูรายละเอียดงาน ${p.projectName || g.name}`}
-                  className="flex h-8 w-8 items-center justify-center justify-self-end rounded-md border cursor-pointer hover:bg-gray-50 md:order-last"
-                  style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
+                  className={`grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3.5 md:grid-cols-[1fr_1.3fr_9rem_5rem] cursor-pointer hover:bg-gray-50/70 transition-colors ${
+                    gi > 0 || pi > 0 ? "border-t" : ""
+                  }`}
+                  style={{ borderColor: COLORS.border }}
                 >
-                  <Eye size={15} />
-                </button>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Users size={13} className="shrink-0" style={{ color: COLORS.amber }} />
+                    <span className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+                      {g.name}
+                    </span>
+                  </div>
 
-                <p className="col-span-2 truncate text-sm md:col-span-1" style={{ color: COLORS.charcoal }}>
-                  {p.projectName || "(ไม่ระบุชื่อโครงงาน)"}
-                </p>
+                  <div className="flex items-center gap-1.5 justify-self-end md:order-last">
+                    {navUrl && (
+                      <a
+                        href={navUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`นำทาง Google Maps ไปยัง ${p.projectName || g.name}`}
+                        title="เปิดนำทาง Google Maps"
+                        className="flex h-8 w-8 items-center justify-center rounded-md border text-emerald-600 hover:bg-emerald-50 hover:border-emerald-300 transition-colors cursor-pointer"
+                        style={{ borderColor: COLORS.border, background: "white" }}
+                      >
+                        <Navigation size={14} className="fill-emerald-600" />
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedProjectId(p.id)}
+                      aria-label={`ดูรายละเอียดงาน ${p.projectName || g.name}`}
+                      title="ดูรายละเอียดงาน"
+                      className="flex h-8 w-8 items-center justify-center rounded-md border cursor-pointer hover:bg-gray-50 transition-colors"
+                      style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
+                    >
+                      <Eye size={15} />
+                    </button>
+                  </div>
 
-                <div className="col-span-2 md:col-span-1">
-                  <StatusCell items={p.items} />
+                  <div className="col-span-2 md:col-span-1 min-w-0">
+                    <p className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+                      {p.projectName || "(ไม่ระบุชื่อโครงงาน)"}
+                    </p>
+                    {(p.location || p.locationAddress) && (
+                      <p className="mt-0.5 flex items-center gap-1 text-xs truncate" style={{ color: COLORS.textMuted }}>
+                        <MapPin size={11} className="shrink-0 text-amber-600" />
+                        <span className="truncate">{p.location || p.locationAddress}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="col-span-2 md:col-span-1">
+                    <StatusCell items={p.items} />
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ))}
         </div>
       )}

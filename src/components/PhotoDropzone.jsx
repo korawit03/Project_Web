@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Camera, Image, X } from "lucide-react";
+import { Camera, Image, X, Loader2 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
+import { compressImage, formatBytes } from "../lib/imageCompression.js";
 
 export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, onReorder, tone }) {
   const cameraInputRef = useRef(null);
@@ -10,15 +11,39 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, on
   const [dragId, setDragId] = useState(null);
   const [dragX, setDragY] = useState(0); // ตำแหน่ง pointer ปัจจุบัน (สำหรับ ghost)
   const dragInfo = useRef(null); // { startX, startY, offsetX, offsetY }
+  const [compressing, setCompressing] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  const handleFiles = (files) => {
-    const list = Array.from(files).map((file) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      url: URL.createObjectURL(file),
-      name: file.name,
-      file,
-    }));
-    onAdd(list);
+  const handleFiles = async (files) => {
+    const fileArray = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (fileArray.length === 0) return;
+
+    setCompressing(true);
+    setProgress({ current: 0, total: fileArray.length });
+
+    try {
+      const list = [];
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        setProgress({ current: i + 1, total: fileArray.length });
+        const compressed = await compressImage(file);
+        list.push({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`,
+          url: URL.createObjectURL(compressed),
+          name: compressed.name,
+          file: compressed,
+          originalSize: compressed.originalSize || file.size,
+          compressedSize: compressed.compressedSize || compressed.size,
+          savingsPercent: compressed.savingsPercent,
+        });
+      }
+      onAdd(list);
+    } catch (err) {
+      console.error("Error processing photos:", err);
+    } finally {
+      setCompressing(false);
+      setProgress({ current: 0, total: 0 });
+    }
   };
 
   const findIndexAtPoint = (x, y) => {
@@ -123,11 +148,23 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, on
             }}
           >
             <img src={p.url} alt={p.name} className="h-full w-full object-cover pointer-events-none" draggable={false} />
+            {p.compressedSize && (
+              <span className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 py-0.2 text-[8px] font-mono text-white pointer-events-none">
+                {formatBytes(p.compressedSize)}
+              </span>
+            )}
             <button
               type="button"
               data-no-drag
-              onClick={() => onRemove(p.id)}
-              className="absolute top-0.5 right-0.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => {
+                if (p.url?.startsWith("blob:")) {
+                  try {
+                    URL.revokeObjectURL(p.url);
+                  } catch {}
+                }
+                onRemove(p.id);
+              }}
+              className="absolute top-0.5 right-0.5 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               style={{ background: "rgba(0,0,0,0.6)" }}
             >
               <X size={11} color="white" />
@@ -136,11 +173,12 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, on
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
+          disabled={compressing}
           onClick={() => cameraInputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium"
+          className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50"
           style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
         >
           <Camera size={13} />
@@ -149,13 +187,21 @@ export default function PhotoDropzone({ label, hint, photos, onAdd, onRemove, on
 
         <button
           type="button"
+          disabled={compressing}
           onClick={() => galleryInputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium"
+          className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium cursor-pointer hover:bg-gray-50 transition-colors disabled:opacity-50"
           style={{ borderColor: COLORS.border, color: COLORS.charcoalSoft, background: "white" }}
         >
           <Image size={13} />
           เลือกจากคลังภาพ {photos.length > 0 && `(${photos.length} รูป)`}
         </button>
+
+        {compressing && (
+          <div className="flex items-center gap-1.5 rounded-md bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs text-emerald-800">
+            <Loader2 size={12} className="animate-spin text-emerald-600" />
+            <span>กำลังบีบอัดภาพ ({progress.current}/{progress.total})...</span>
+          </div>
+        )}
       </div>
 
       <input

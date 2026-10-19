@@ -1,30 +1,39 @@
 import { supabase } from "./supabase.js";
+import { compressImage } from "./imageCompression.js";
 
 // อัปโหลดไฟล์รูปหนึ่งรูปขึ้น Supabase Storage แล้วคืน public URL
 export async function uploadPhoto(file, folder = "misc") {
-  const ext = file.name.split(".").pop();
+  // บีบอัดรูปก่อนอัปโหลดเสมอ (ป้องกันกรณีได้ไฟล์ดิบที่ยังไม่ได้บีบอัด)
+  const processedFile = await compressImage(file);
+
+  const ext = processedFile.name.split(".").pop();
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  const { error } = await supabase.storage.from("site-photos").upload(path, file);
+  const { error } = await supabase.storage.from("site-photos").upload(path, processedFile, {
+    contentType: processedFile.type || "image/webp",
+    upsert: false,
+  });
   if (error) throw error;
 
   const { data } = supabase.storage.from("site-photos").getPublicUrl(path);
-  return { url: data.publicUrl, path };
+  return { url: data.publicUrl, path, name: processedFile.name };
 }
 
 // อัปโหลดหลายไฟล์พร้อมกัน คืน array ของ { url, path, name }
 export async function uploadPhotos(photoItems, folder = "misc") {
-  const results = [];
-  for (const p of photoItems) {
+  if (!photoItems || photoItems.length === 0) return [];
+
+  // ใช้ Promise.all เพื่ออัปโหลดแบบขนาน (Concurrent) ช่วยให้เร็วกว่าเดิมหลายเท่า
+  const uploadPromises = photoItems.map(async (p) => {
     if (p.url && p.url.startsWith("http") && !p.file) {
       // รูปเดิมที่อัปโหลดไปแล้ว (โหมดแก้ไข) ไม่ต้องอัปซ้ำ
-      results.push({ url: p.url, path: p.path, name: p.name });
-      continue;
+      return { url: p.url, path: p.path, name: p.name };
     }
     const { url, path } = await uploadPhoto(p.file, folder);
-    results.push({ url, path, name: p.name });
-  }
-  return results;
+    return { url, path, name: p.name };
+  });
+
+  return Promise.all(uploadPromises);
 }
 
 // ลบรูปออกจาก storage ตาม path

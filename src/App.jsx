@@ -31,7 +31,7 @@ function mapPhotos(sitePhotos, photoType) {
       name: p.storage_path || "photo",
     }));
 }
-
+// แปลง row ของโครงงานจากฐานข้อมูลให้เป็น shape เดิมที่ใช้งาน
 function mapProjectFromDb(row) {
   const loc = row.location_ref; // สถานที่ที่ผูกอยู่ (null ถ้าเป็นโครงงานเก่าหรือสถานที่ถูกลบ)
   return {
@@ -42,11 +42,12 @@ function mapProjectFromDb(row) {
     customerPhone: row.customer?.phone || "",
     locationId: row.location_id ?? null,
     location: loc ? loc.name : row.location,
+    locationAddress: loc ? (loc.address || loc.address_line || "") : "",
     latitude: loc ? loc.latitude : row.latitude,
     longitude: loc ? loc.longitude : row.longitude,
     savedAt: row.created_date,
     updatedAt: row.updated_at,
-
+    // แปลง job_items -> items (เรียงตาม sort_order)
     items: (row.job_items || [])
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -65,7 +66,7 @@ function mapProjectFromDb(row) {
       })),
   };
 }
-
+// แปลง row ของโครงงานจากฐานข้อมูลให้เป็น shape เดิมที่ใช้งาน
 export default function App() {
   const [activeView, setActiveView] = useState("customer-list");
   const [projects, setProjects] = useState([]);
@@ -73,7 +74,8 @@ export default function App() {
   const { workCatalog, categoryOrder, loading: catalogLoading, reload: reloadCatalog } = useWorkCatalog();
   const { customers, loading: customersLoading, findOrCreateCustomer, createCustomer,
     updateCustomerPhone, updateCustomerInfo, addLocation, updateLocation, deleteLocation } = useCustomers();
-
+   
+    // โหลดรายการโครงงานจากฐานข้อมูล พร้อมลูกค้าและชิ้นงาน
   const loadProjects = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -148,7 +150,7 @@ export default function App() {
     await loadProjects();
     return true;
   };
-
+  
   const handleDeleteProject = async (projectId) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return false;
@@ -215,7 +217,7 @@ export default function App() {
 
       <div className="flex-1 min-w-0 flex flex-col">
         <MobileTopBar />
-
+      
         <main className="flex-1 min-w-0 pb-20 md:pb-0">
           {activeView === "form" ? (
             <SiteWorkForm

@@ -7,7 +7,24 @@ import { validateForm, hasErrors } from "../lib/validation.js";
 import SuccessBurst from "../components/SuccessBurst.jsx";
 import { supabase } from "../lib/supabase.js";
 import { saveAllWorkItems } from "../lib/jobItems.js";
-import { Wrench, Plus, Layers, Save, AlertCircle, Phone, Users, X, Calendar, MapPin } from "lucide-react";import { DEFAULT_STATUS } from "../lib/status.js";
+import {
+  Wrench,
+  Plus,
+  Layers,
+  Save,
+  AlertCircle,
+  Phone,
+  Users,
+  X,
+  Calendar,
+  MapPin,
+  Sparkles,
+  RotateCcw,
+  Trash2,
+  CheckCircle2,
+} from "lucide-react";
+import { DEFAULT_STATUS } from "../lib/status.js";
+import { saveFormDraft, getFormDraft, clearFormDraft, formatDraftTime } from "../lib/draftStorage.js";
 
 
 let itemCounter = 1;
@@ -80,6 +97,76 @@ export default function SiteWorkForm({
   const [projectTitleError, setProjectTitleError] = useState(false);
   const [selectedLocationId, setSelectedLocationId] = useState("");
   const [locationError, setLocationError] = useState(false);
+  const [draftAvailable, setDraftAvailable] = useState(null);
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState(null);
+
+  // ตรวจสอบแบบร่างที่บันทึกค้างไว้เมื่อโหลดหน้าเว็บ
+  useEffect(() => {
+    let active = true;
+    getFormDraft().then((draft) => {
+      if (active && draft) {
+        setDraftAvailable(draft);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // กู้คืนข้อมูลจากแบบร่าง
+  const handleRestoreDraft = () => {
+    if (!draftAvailable) return;
+    setSelectedCustomerId(draftAvailable.selectedCustomerId || "");
+    setProjectName(draftAvailable.projectName || "");
+    setProjectTitle(draftAvailable.projectTitle || "");
+    setProjectDate(draftAvailable.projectDate || todayStr());
+    setSelectedLocationId(draftAvailable.selectedLocationId || "");
+    setShowCreateNew(draftAvailable.showCreateNew ?? true);
+    if (draftAvailable.items && draftAvailable.items.length > 0) {
+      setItems(draftAvailable.items);
+    }
+    setLastAutoSavedTime(draftAvailable.savedAt);
+    setDraftAvailable(null);
+  };
+
+  // ลบทิ้งแบบร่าง
+  const handleDiscardDraft = async () => {
+    await clearFormDraft();
+    setDraftAvailable(null);
+    setLastAutoSavedTime(null);
+  };
+
+  // Auto-save อัตโนมัติ (หน่วงเวลา 1.2 วินาทีหลังจากพิมพ์)
+  useEffect(() => {
+    if (draftAvailable) return;
+
+    const timer = setTimeout(async () => {
+      const draftData = {
+        selectedCustomerId,
+        projectName,
+        projectTitle,
+        projectDate,
+        selectedLocationId,
+        showCreateNew,
+        items,
+      };
+      const saved = await saveFormDraft(draftData);
+      if (saved) {
+        setLastAutoSavedTime(Date.now());
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [
+    selectedCustomerId,
+    projectName,
+    projectTitle,
+    projectDate,
+    selectedLocationId,
+    showCreateNew,
+    items,
+    draftAvailable,
+  ]);
 
   const selectedCustomer = customers.find((c) => String(c.customer_id) === String(selectedCustomerId)) || null;
   const customerLocations = selectedCustomer?.locations || [];
@@ -133,11 +220,11 @@ export default function SiteWorkForm({
     setSelectedLocationId("");
     setLocationError(false);
   };
-
+  //ตรวจความถูกต้อง → ยืนยัน → insert ลงตาราง projects 
   const handleSave = async () => {
     setSubmitted(true);
     setSaveError("");
-    const nextErrors = validateForm(projectName, items, workCatalog);
+    const nextErrors = validateForm(projectName, items, workCatalog); //ตรวจทุก WorkItemCard
     setErrors(nextErrors);
     const titleMissing = !projectTitle.trim();
     setProjectTitleError(titleMissing);
@@ -149,12 +236,12 @@ export default function SiteWorkForm({
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-
+   
     const confirmed = window.confirm("ยืนยันบันทึกข้อมูลหน้างานนี้ใช่หรือไม่?");
     if (!confirmed) return;
 
     setSaving(true);
-
+    
     try {
       if (!selectedCustomer) {
         setSaveError("กรุณาเลือกลูกค้าก่อนบันทึก");
@@ -178,10 +265,15 @@ export default function SiteWorkForm({
         })
         .select()
         .single();
-
+        
       if (projectError) throw projectError;
-
+      
+      //บันทึกชิ้นงานและรูป → ล้างฟอร์ม
       await saveAllWorkItems(items, projectRow.project_id, workCatalog);
+
+      await clearFormDraft();
+      setLastAutoSavedTime(null);
+      setDraftAvailable(null);
 
       onSaved();
 
@@ -209,16 +301,65 @@ export default function SiteWorkForm({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
-      <div className="mb-6 flex items-center justify-between gap-3 border-b pb-4" style={{ borderColor: COLORS.border }}>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-4" style={{ borderColor: COLORS.border }}>
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: COLORS.charcoal }}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: COLORS.charcoal }}>
             <Wrench size={17} color={COLORS.amber} />
           </span>
-          <h1 className="text-lg font-bold" style={{ color: COLORS.charcoal }}>
-            ฟอร์มจัดการข้อมูลหน้างานหลัก
-          </h1>
+          <div>
+            <h1 className="text-lg font-bold" style={{ color: COLORS.charcoal }}>
+              ฟอร์มจัดการข้อมูลหน้างานหลัก
+            </h1>
+            {lastAutoSavedTime && (
+              <p className="flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+                <CheckCircle2 size={11} className="text-emerald-600" />
+                <span>บันทึกแบบร่างอัตโนมัติแล้ว ({formatDraftTime(lastAutoSavedTime)})</span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
+
+      {draftAvailable && (
+        <div
+          className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border p-4 shadow-xs"
+          style={{ background: "#F0FDF4", borderColor: "#86EFAC" }}
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+              <Sparkles size={16} />
+            </span>
+            <div>
+              <h4 className="text-sm font-bold text-emerald-950">
+                พบข้อมูลแบบร่างที่บันทึกค้างไว้
+              </h4>
+              <p className="text-xs text-emerald-800">
+                บันทึกเมื่อ {formatDraftTime(draftAvailable.savedAt)}
+                {draftAvailable.projectTitle ? ` · โครงงาน: "${draftAvailable.projectTitle}"` : ""}
+                {draftAvailable.items?.length ? ` · ชิ้นงาน ${draftAvailable.items.length} รายการ` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleRestoreDraft}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition-colors cursor-pointer"
+            >
+              <RotateCcw size={13} />
+              กู้คืนข้อมูล
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-white hover:bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-800 transition-colors cursor-pointer"
+            >
+              <Trash2 size={13} />
+              ลบทิ้ง
+            </button>
+          </div>
+        </div>
+      )}
 
       <SuccessBurst message={savedMsg} trigger={savedMsg ? Date.now() : null} />
 
@@ -277,6 +418,7 @@ export default function SiteWorkForm({
                 .slice()
                 .sort((a, b) => new Date(b.updatedAt || b.savedAt) - new Date(a.updatedAt || a.savedAt))
                 .map((p) => (
+                  // ProjectCard: แสดงโครงงานของลูกค้าแต่ละรายการ พร้อมปุ่มแก้ไข/ลบ
                   <ProjectCard
                     key={p.id}
                     project={p}
