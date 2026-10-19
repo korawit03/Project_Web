@@ -184,7 +184,7 @@ export default function WorkItemCard({
         >
           <div className="flex items-center justify-between">
             <FieldLabel icon={Camera} required iconColor={SECTION.before.accent}>
-              รูปและรายละเอียดก่อนทำ (Before)
+              ก่อนเริ่มงาน (Before) : ผังชี้ตำแหน่งและขนาดชิ้นงาน
             </FieldLabel>
             <span
               className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
@@ -197,23 +197,28 @@ export default function WorkItemCard({
 
           <PhotoDropzone
             tone={SECTION.before}
-            label="รูปถ่ายสภาพหน้างานเดิม / ผังชี้ตำแหน่ง"
-            hint="ถ่ายภาพสภาพหน้างานเดิมก่อนลงมือทำ หรือผังชี้ตำแหน่งจุดติดตั้ง เพื่อใช้เปรียบเทียบ"
+            label="รูปผังชี้ตำแหน่ง และ รูปขนาดชิ้นงานเดิม"
+            hint="ถ่ายภาพหรือแนบรูปผังตำแหน่งติดตั้ง, สภาพหน้างานเดิม, และขนาดชิ้นงานก่อนทำ"
             photos={item.positionPhotos}
             onAdd={(list) => set({ positionPhotos: [...list, ...item.positionPhotos] })}
             onRemove={(id) => set({ positionPhotos: item.positionPhotos.filter((p) => p.id !== id) })}
             onReorder={(next) => set({ positionPhotos: next })}
           />
-          <TextInput
-            placeholder="ระบุตำแหน่งติดตั้ง เช่น ห้องนอนชั้น 2 ผนังด้านทิศเหนือ"
-            value={item.positionNote}
-            onChange={(e) => set({ positionNote: e.target.value })}
-            error={errors.positionNote}
-          />
-          {errors.positionNote && <ErrorText>กรุณาระบุรายละเอียดหน้างาน</ErrorText>}
+          <div>
+            <FieldLabel icon={MapPin} required tone="amber">
+              ระบุตำแหน่งติดตั้ง & ขนาดชิ้นงาน
+            </FieldLabel>
+            <TextInput
+              placeholder="ระบุตำแหน่งและขนาด เช่น ห้องนอนชั้น 2 ผนังทิศเหนือ ขนาด 80x200 ซม."
+              value={item.positionNote}
+              onChange={(e) => set({ positionNote: e.target.value })}
+              error={errors.positionNote}
+            />
+            {errors.positionNote && <ErrorText>กรุณาระบุตำแหน่งติดตั้งและขนาดชิ้นงาน</ErrorText>}
+          </div>
           <textarea
             rows={2}
-            placeholder="รายละเอียดสภาพหน้างานก่อนทำเพิ่มเติม (ถ้ามี)"
+            placeholder="รายละเอียดผังตำแหน่ง / ขนาดชิ้นงานเพิ่มเติม (ถ้ามี)"
             value={item.positionDetail || ""}
             onChange={(e) => set({ positionDetail: e.target.value })}
             className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
@@ -232,7 +237,7 @@ export default function WorkItemCard({
         >
           <div className="flex items-center justify-between">
             <FieldLabel icon={CheckCircle2} iconColor={SECTION.after.accent}>
-              รูปและผลงานหลังทำเสร็จ (After)
+              หลังทำเสร็จ (After) : รูปผลงานและรายละเอียดหลังทำเสร็จ
             </FieldLabel>
             <span
               className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
@@ -245,21 +250,26 @@ export default function WorkItemCard({
 
           <PhotoDropzone
             tone={SECTION.after}
-            label="รูปผลงานหลังติดตั้งเสร็จสมบูรณ์ / ขนาดชิ้นงาน"
-            hint="ถ่ายรูปผลงานจริงหลังติดตั้งเสร็จเรียบร้อยแล้ว เพื่อส่งมอบงานและเปรียบเทียบก่อน-หลัง"
+            label="รูปผลงานหลังติดตั้งเสร็จสมบูรณ์"
+            hint="ถ่ายภาพผลงานชิ้นงานจริงหลังทำเสร็จ เพื่อส่งมอบงานและเปรียบเทียบกับภาพก่อนทำ"
             photos={item.workPhotos}
             onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
             onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
             onReorder={(next) => set({ workPhotos: next })}
           />
-          <TextInput
-            placeholder="เช่น ขนาด 80x200 ซม., สีขาวด้าน, เก็บงานเรียบร้อย"
-            value={item.note || ""}
-            onChange={(e) => set({ note: e.target.value })}
-          />
+          <div>
+            <FieldLabel icon={Tag} iconColor={SECTION.after.accent}>
+              รายละเอียดผลงานหลังทำเสร็จ
+            </FieldLabel>
+            <TextInput
+              placeholder="เช่น ติดตั้งเรียบร้อย, เก็บงานซิลิโคนขาวเนียน, ตรวจสอบการใช้งานปกติ"
+              value={item.note || ""}
+              onChange={(e) => set({ note: e.target.value })}
+            />
+          </div>
           <textarea
             rows={2}
-            placeholder="รายละเอียดผลงานหลังทำเสร็จเพิ่มเติม (ถ้ามี)"
+            placeholder="รายละเอียดการส่งมอบงานเพิ่มเติม (ถ้ามี)"
             value={item.workDetail || ""}
             onChange={(e) => set({ workDetail: e.target.value })}
             className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"

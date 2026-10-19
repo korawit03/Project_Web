@@ -26,8 +26,8 @@ import PhotoLightbox from "./PhotoLightbox.jsx";
 export default function BeforeAfterCompare({
   beforePhotos = [],
   afterPhotos = [],
-  beforeTitle = "ก่อนเริ่มงาน (Before)",
-  afterTitle = "ผลงานหลังทำเสร็จ (After)",
+  beforeTitle = "ก่อนเริ่มงาน (Before) : ผังตำแหน่ง & ขนาดชิ้นงาน",
+  afterTitle = "หลังทำเสร็จ (After) : ผลงานติดตั้งเสร็จสมบูรณ์",
   beforeNote = "",
   beforeDetail = "",
   afterNote = "",
@@ -328,10 +328,10 @@ export default function BeforeAfterCompare({
             <div className="rounded-lg p-2.5 text-xs space-y-1" style={{ background: SECTION.before.bg }}>
               <span className="font-bold flex items-center gap-1" style={{ color: SECTION.before.accent }}>
                 <MapPin size={11} />
-                สภาพหน้างานก่อนทำ:
+                ผังชี้ตำแหน่ง & ขนาดชิ้นงาน:
               </span>
               <p className="font-medium" style={{ color: COLORS.charcoal }}>
-                {beforeNote || "(ไม่ระบุรายละเอียดตำแหน่ง)"}
+                {beforeNote || "(ไม่ระบุผังตำแหน่งหรือขนาด)"}
               </p>
               {beforeDetail && (
                 <p className="text-gray-600 whitespace-pre-line">{beforeDetail}</p>
@@ -344,7 +344,7 @@ export default function BeforeAfterCompare({
                 ผลงานหลังทำเสร็จ:
               </span>
               <p className="font-medium" style={{ color: COLORS.charcoal }}>
-                {afterNote || "(ไม่ระบุขนาด/รายละเอียดงาน)"}
+                {afterNote || "(ไม่ระบุรายละเอียดหลังทำ)"}
               </p>
               {afterDetail && (
                 <p className="text-gray-600 whitespace-pre-line">{afterDetail}</p>
@@ -412,7 +412,7 @@ export default function BeforeAfterCompare({
               <div className="rounded-lg bg-white/80 p-2.5 text-xs space-y-1 border" style={{ borderColor: SECTION.before.border }}>
                 {beforeNote && (
                   <p className="font-medium" style={{ color: COLORS.charcoal }}>
-                    <span className="text-gray-500 font-normal">ตำแหน่ง: </span>
+                    <span className="text-gray-500 font-normal">ตำแหน่ง & ขนาด: </span>
                     {beforeNote}
                   </p>
                 )}
@@ -476,12 +476,12 @@ export default function BeforeAfterCompare({
               </div>
             )}
 
-            {/* ข้อความขนาดและรายละเอียดหลังทำ */}
+            {/* ข้อความผลงานหลังทำ */}
             {(afterNote || afterDetail) && (
               <div className="rounded-lg bg-white/80 p-2.5 text-xs space-y-1 border" style={{ borderColor: SECTION.after.border }}>
                 {afterNote && (
-                  <p className="font-medium italic" style={{ color: COLORS.charcoal }}>
-                    <span className="text-gray-500 font-normal not-italic">ขนาด/ชิ้นงาน: </span>
+                  <p className="font-medium" style={{ color: COLORS.charcoal }}>
+                    <span className="text-gray-500 font-normal">ผลงานหลังทำ: </span>
                     {afterNote}
                   </p>
                 )}
