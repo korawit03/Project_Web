@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle } from "lucide-react";
+import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle, Camera, CheckCircle2 } from "lucide-react";
 import { FieldLabel, TextInput, Select, ErrorText } from "./ui.jsx";
 import PhotoDropzone from "./PhotoDropzone.jsx";
 import { isNoneValue, isFieldVisible } from "../lib/validation.js";
@@ -173,21 +173,32 @@ export default function WorkItemCard({
           </div>
         )}
 
-        {/* รายละเอียดหน้างาน (เดิมคือ ระบุตำแหน่งติดตั้ง) */}
+        {/* รูปและรายละเอียดก่อนเริ่มงาน (Before) */}
         <div
           className="rounded-lg border p-4 space-y-3"
           style={{
-            borderColor: errors.positionNote ? COLORS.red : SECTION.site.border,
-            borderLeft: `4px solid ${errors.positionNote ? COLORS.red : SECTION.site.accent}`,
-            background: SECTION.site.bg,
+            borderColor: errors.positionNote ? COLORS.red : SECTION.before.border,
+            borderLeft: `4px solid ${errors.positionNote ? COLORS.red : SECTION.before.accent}`,
+            background: SECTION.before.bg,
           }}
         >
-          <FieldLabel icon={MapPin} required iconColor={SECTION.site.accent}>
-            รายละเอียดหน้างาน
-          </FieldLabel>
+          <div className="flex items-center justify-between">
+            <FieldLabel icon={Camera} required iconColor={SECTION.before.accent}>
+              รูปและรายละเอียดก่อนทำ (Before)
+            </FieldLabel>
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+              style={{ background: SECTION.before.badgeBg, color: SECTION.before.badgeText }}
+            >
+              <Camera size={11} />
+              ก่อนทำ (Before)
+            </span>
+          </div>
+
           <PhotoDropzone
-            tone={SECTION.site}
-            label="ถ่ายภาพหรือเลือกรูปผังชี้ตำแหน่ง"
+            tone={SECTION.before}
+            label="รูปถ่ายสภาพหน้างานเดิม / ผังชี้ตำแหน่ง"
+            hint="ถ่ายภาพสภาพหน้างานเดิมก่อนลงมือทำ หรือผังชี้ตำแหน่งจุดติดตั้ง เพื่อใช้เปรียบเทียบ"
             photos={item.positionPhotos}
             onAdd={(list) => set({ positionPhotos: [...list, ...item.positionPhotos] })}
             onRemove={(id) => set({ positionPhotos: item.positionPhotos.filter((p) => p.id !== id) })}
@@ -202,7 +213,7 @@ export default function WorkItemCard({
           {errors.positionNote && <ErrorText>กรุณาระบุรายละเอียดหน้างาน</ErrorText>}
           <textarea
             rows={2}
-            placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+            placeholder="รายละเอียดสภาพหน้างานก่อนทำเพิ่มเติม (ถ้ามี)"
             value={item.positionDetail || ""}
             onChange={(e) => set({ positionDetail: e.target.value })}
             className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"
@@ -210,33 +221,45 @@ export default function WorkItemCard({
           />
         </div>
 
-        {/* รายละเอียดชิ้นงาน (เดิมคือ รูปถ่ายหน้างาน / ขนาดชิ้นงาน) */}
+        {/* รูปและผลงานหลังทำเสร็จ (After) */}
         <div
           className="rounded-lg border p-4 space-y-3"
           style={{
-            borderColor: SECTION.work.border,
-            borderLeft: `4px solid ${SECTION.work.accent}`,
-            background: SECTION.work.bg,
+            borderColor: SECTION.after.border,
+            borderLeft: `4px solid ${SECTION.after.accent}`,
+            background: SECTION.after.bg,
           }}
         >
-          <FieldLabel icon={Tag} iconColor={SECTION.work.accent}>ขนาดของชิ้นงาน</FieldLabel>
+          <div className="flex items-center justify-between">
+            <FieldLabel icon={CheckCircle2} iconColor={SECTION.after.accent}>
+              รูปและผลงานหลังทำเสร็จ (After)
+            </FieldLabel>
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+              style={{ background: SECTION.after.badgeBg, color: SECTION.after.badgeText }}
+            >
+              <CheckCircle2 size={11} />
+              หลังทำเสร็จ (After)
+            </span>
+          </div>
+
           <PhotoDropzone
-            tone={SECTION.work}
-            label="รูปประกอบขนาดชิ้นงาน"
-            hint="ถ่ายรูปหรือเลือกรูปจากคลังภาพ เพื่อแสดงรายละเอียดและขนาดของชิ้นงาน"
+            tone={SECTION.after}
+            label="รูปผลงานหลังติดตั้งเสร็จสมบูรณ์ / ขนาดชิ้นงาน"
+            hint="ถ่ายรูปผลงานจริงหลังติดตั้งเสร็จเรียบร้อยแล้ว เพื่อส่งมอบงานและเปรียบเทียบก่อน-หลัง"
             photos={item.workPhotos}
             onAdd={(list) => set({ workPhotos: [...list, ...item.workPhotos] })}
             onRemove={(id) => set({ workPhotos: item.workPhotos.filter((p) => p.id !== id) })}
             onReorder={(next) => set({ workPhotos: next })}
           />
           <TextInput
-            placeholder="เช่น ขนาด 80x200 ซม., สีขาวด้าน"
+            placeholder="เช่น ขนาด 80x200 ซม., สีขาวด้าน, เก็บงานเรียบร้อย"
             value={item.note || ""}
             onChange={(e) => set({ note: e.target.value })}
           />
           <textarea
             rows={2}
-            placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"
+            placeholder="รายละเอียดผลงานหลังทำเสร็จเพิ่มเติม (ถ้ามี)"
             value={item.workDetail || ""}
             onChange={(e) => set({ workDetail: e.target.value })}
             className="w-full rounded-lg border bg-white px-3.5 py-2.5 text-[15px] outline-none"

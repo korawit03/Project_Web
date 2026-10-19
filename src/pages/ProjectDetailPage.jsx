@@ -18,11 +18,14 @@ import {
   Copy,
   Check,
   Map as MapIcon,
+  Camera,
+  CheckCircle2,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
 import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
 import PhotoLightbox from "../components/PhotoLightbox.jsx";
+import BeforeAfterCompare from "../components/BeforeAfterCompare.jsx";
 import { formatPhone } from "../lib/nameValidation.js";
 import MapPinPicker from "../components/MapPinPicker.jsx";
 
@@ -394,6 +397,8 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
   if (selected) {
     const allItems = selected.projects.flatMap((p) => p.items);
     const { done, total } = getOverallStatus(allItems);
+    const totalBeforePhotos = allItems.reduce((acc, it) => acc + (it.positionPhotos?.length || 0), 0);
+    const totalAfterPhotos = allItems.reduce((acc, it) => acc + (it.workPhotos?.length || 0), 0);
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
@@ -403,6 +408,29 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
           title={selectedProject.projectName || "(ไม่ระบุชื่อโครงงาน)"}
           subtitle={`ลูกค้า: ${selected.name}${total > 0 ? ` · เสร็จแล้ว ${done} จาก ${total} ชิ้นงาน` : ""}`}
         />
+
+        {/* สรุปรูปถ่ายก่อน-หลังทำของโครงงาน */}
+        {(totalBeforePhotos > 0 || totalAfterPhotos > 0) && (
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold" style={{ color: COLORS.charcoalSoft }}>
+              รูปถ่ายทั้งหมดในโครงงาน:
+            </span>
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              style={{ background: "#FEF3C7", color: "#B45309" }}
+            >
+              <Camera size={11} />
+              ก่อนทำ (Before): {totalBeforePhotos} รูป
+            </span>
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+              style={{ background: "#DCFCE7", color: "#15803D" }}
+            >
+              <CheckCircle2 size={11} />
+              หลังทำเสร็จ (After): {totalAfterPhotos} รูป
+            </span>
+          </div>
+        )}
 
         <ProjectLocationCard project={selectedProject} />
         <div className="mb-4 flex justify-end">
@@ -547,24 +575,17 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                               </div>
                             )}
 
-                            <DetailSection
-                              icon={MapPin}
-                              title="รายละเอียดหน้างาน"
-                              photos={positionPhotos}
-                              mainText={item.positionNote}
-                              extraText={item.positionDetail}
+                            {/* เปรียบเทียบรูปก่อนทำ vs หลังทำ */}
+                            <BeforeAfterCompare
+                              beforePhotos={positionPhotos}
+                              afterPhotos={workPhotos}
+                              beforeTitle="ก่อนเริ่มงาน (Before)"
+                              afterTitle="ผลงานหลังทำเสร็จ (After)"
+                              beforeNote={item.positionNote}
+                              beforeDetail={item.positionDetail}
+                              afterNote={item.note}
+                              afterDetail={item.workDetail}
                             />
-
-                            <DetailSection
-                              icon={Tag}
-                              title="รายละเอียดชิ้นงาน"
-                              photos={workPhotos}
-                              mainText={item.note}
-                              mainItalic
-                              extraText={item.workDetail}
-                            />
-
-
 
                             {!hasAnswers && !item.positionNote && !item.positionDetail && !item.note && !item.workDetail && !hasPhotos && (
                               <p className="text-xs" style={{ color: COLORS.textMuted }}>

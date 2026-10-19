@@ -14,7 +14,24 @@ export const COLORS = {
 };
 // สีประจำแต่ละส่วนในการ์ดชิ้นงาน: พื้นอ่อน / เส้นขอบ / สีเน้น (ไอคอน + แถบซ้าย)
 export const SECTION = {
-  detail: { bg: "#FEF6E7", border: "#F3D9A4", accent: "#E8951C" }, // ส้ม: รายละเอียด/วัสดุ#FEF6E7 #F3D9A4 #E8951C
-  site: { bg: "#FEF6E7", border: "#F3D9A4", accent: "#E8951C" }, // ฟ้า: รายละเอียดหน้างาน#EEF5FC #C5DBF1 #3B82C4
-  work: { bg: "#FEF6E7", border: "#F3D9A4", accent: "#E8951C" }, // เขียว: รายละเอียดชิ้นงาน#EDF7F0 #BFE0CA #3E8E5C
+  detail: { bg: "#FEF6E7", border: "#F3D9A4", accent: "#E8951C" }, // ส้ม: รายละเอียด/วัสดุ
+  before: { 
+    bg: "#FFFBEB", 
+    border: "#FDE68A", 
+    accent: "#D97706", 
+    badgeBg: "#FEF3C7", 
+    badgeText: "#B45309",
+    label: "ก่อนทำ (Before)" 
+  }, // ส้ม/เหลือง: ก่อนเริ่มงาน (Before)
+  after: { 
+    bg: "#F0FDF4", 
+    border: "#BBF7D0", 
+    accent: "#16A34A", 
+    badgeBg: "#DCFCE7", 
+    badgeText: "#15803D",
+    label: "หลังทำ (After)" 
+  }, // เขียวมรกต: ผลงานหลังทำเสร็จ (After)
+  site: { bg: "#FFFBEB", border: "#FDE68A", accent: "#D97706" }, // alias for backward-compat
+  work: { bg: "#F0FDF4", border: "#BBF7D0", accent: "#16A34A" }, // alias for backward-compat
 };
+
