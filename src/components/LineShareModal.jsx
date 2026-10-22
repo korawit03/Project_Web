@@ -84,12 +84,35 @@ export default function LineShareModal({ project, onClose }) {
   const shareText = buildShareText();
 
   // สร้าง URL สำหรับเปิด LINE
-  const lineShareUrl = `https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`;
+  // 1. social-plugins lineit share (ทำงานได้ดีทั้งคอมและมือถือ)
+  const lineWebShareUrl = `https://social-plugins.line.me/lineit/share?text=${encodeURIComponent(shareText)}`;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleOpenLine = (e) => {
+    e.preventDefault();
+    // คัดลอกข้อความลงคลิปบอร์ดสำรองไว้ให้อัตโนมัติทันที
+    navigator.clipboard?.writeText(shareText);
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      // บนมือถือ: เปิดแอป LINE โดยตรงผ่าน URL Scheme
+      window.location.href = `line://msg/text/${encodeURIComponent(shareText)}`;
+    } else {
+      // บนคอมพิวเตอร์: เปิดหน้าต่างแชร์ของ LINE (ขนาด popup พอดี)
+      const popup = window.open(
+        lineWebShareUrl,
+        "line_share",
+        "width=600,height=600,menubar=no,toolbar=no,status=no"
+      );
+      if (!popup || popup.closed || typeof popup.closed === "undefined") {
+        window.open(lineWebShareUrl, "_blank");
+      }
+    }
   };
 
   return (
@@ -123,7 +146,7 @@ export default function LineShareModal({ project, onClose }) {
               <Sparkles size={13} className="text-amber-500" />
               ข้อความที่พร้อมส่ง:
             </span>
-            <span className="text-[11px] text-gray-400">ตรวจสอบก่อนส่ง</span>
+            <span className="text-[11px] text-emerald-600 font-medium">คัดลอกลงคลิปบอร์ดให้อัตโนมัติเมื่อกดแชร์</span>
           </div>
 
           {/* กล่องข้อความ Preview */}
@@ -154,16 +177,15 @@ export default function LineShareModal({ project, onClose }) {
             </button>
 
             {/* ปุ่มเปิดแอป LINE */}
-            <a
-              href={lineShareUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={handleOpenLine}
               className="flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:opacity-95 active:scale-95 transition-all cursor-pointer"
               style={{ background: "#06C755" }}
             >
               <Send size={14} />
               <span>เปิดแชร์ในแอป LINE</span>
-            </a>
+            </button>
           </div>
         </div>
       </div>
