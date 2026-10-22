@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   Printer,
   FileText,
+  Map as MapIcon,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
