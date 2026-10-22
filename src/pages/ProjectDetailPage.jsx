@@ -22,6 +22,7 @@ import {
   Printer,
   FileText,
   Map as MapIcon,
+  MessageSquare,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
@@ -29,6 +30,7 @@ import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
 import PhotoLightbox from "../components/PhotoLightbox.jsx";
 import BeforeAfterCompare from "../components/BeforeAfterCompare.jsx";
 import ProjectReportModal from "../components/ProjectReportModal.jsx";
+import LineShareModal from "../components/LineShareModal.jsx";
 import { formatPhone } from "../lib/nameValidation.js";
 import MapPinPicker from "../components/MapPinPicker.jsx";
 
@@ -362,6 +364,7 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showLineModal, setShowLineModal] = useState(false);
 
   const groups = useMemo(() => {
     const map = new Map();
@@ -409,16 +412,29 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <BackButton onClick={() => setSelectedProjectId(null)}>กลับไปดูรายการโครงงาน</BackButton>
 
-          {/* ปุ่มส่งออกรายงาน / พิมพ์ใบส่งมอบงาน PDF */}
-          <button
-            type="button"
-            onClick={() => setShowReportModal(true)}
-            className="flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-            style={{ background: COLORS.charcoal }}
-          >
-            <Printer size={14} style={{ color: COLORS.amber }} />
-            พิมพ์รายงาน / ใบส่งมอบงาน (PDF)
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* ปุ่มแชร์สรุปงานทาง LINE */}
+            <button
+              type="button"
+              onClick={() => setShowLineModal(true)}
+              className="flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:opacity-95 active:scale-95 transition-all cursor-pointer"
+              style={{ background: "#06C755" }}
+            >
+              <MessageSquare size={14} />
+              แชร์สรุปงานเข้า LINE
+            </button>
+
+            {/* ปุ่มส่งออกรายงาน / พิมพ์ใบส่งมอบงาน PDF */}
+            <button
+              type="button"
+              onClick={() => setShowReportModal(true)}
+              className="flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+              style={{ background: COLORS.charcoal }}
+            >
+              <Printer size={14} style={{ color: COLORS.amber }} />
+              พิมพ์รายงาน / ใบส่งมอบงาน (PDF)
+            </button>
+          </div>
         </div>
 
         <Header
@@ -626,6 +642,14 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
             project={selectedProject}
             workCatalog={workCatalog}
             onClose={() => setShowReportModal(false)}
+          />
+        )}
+
+        {/* Modal พรีวิวและแชร์สรุปงานเข้า LINE */}
+        {showLineModal && (
+          <LineShareModal
+            project={selectedProject}
+            onClose={() => setShowLineModal(false)}
           />
         )}
       </div>
