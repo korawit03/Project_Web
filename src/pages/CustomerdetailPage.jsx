@@ -127,7 +127,6 @@ export default function CustomerDetailPage({
         firstName: cleanName(firstName),
         lastName: cleanName(lastName),
         phone,
-        Nickanme,
       });
       onCustomerUpdated?.();
       setEditing(false);
