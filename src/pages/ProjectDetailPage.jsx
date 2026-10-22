@@ -17,15 +17,17 @@ import {
   Phone,
   Copy,
   Check,
-  Map as MapIcon,
   Camera,
   CheckCircle2,
+  Printer,
+  FileText,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
 import { StatusBadge, StatusSelect, StatusSegment } from "../components/ui.jsx";
 import PhotoLightbox from "../components/PhotoLightbox.jsx";
 import BeforeAfterCompare from "../components/BeforeAfterCompare.jsx";
+import ProjectReportModal from "../components/ProjectReportModal.jsx";
 import { formatPhone } from "../lib/nameValidation.js";
 import MapPinPicker from "../components/MapPinPicker.jsx";
 
@@ -358,6 +360,7 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [expandedItemId, setExpandedItemId] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   const groups = useMemo(() => {
     const map = new Map();
@@ -402,7 +405,20 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
-        <BackButton onClick={() => setSelectedProjectId(null)}>กลับไปดูรายการโครงงาน</BackButton>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <BackButton onClick={() => setSelectedProjectId(null)}>กลับไปดูรายการโครงงาน</BackButton>
+
+          {/* ปุ่มส่งออกรายงาน / พิมพ์ใบส่งมอบงาน PDF */}
+          <button
+            type="button"
+            onClick={() => setShowReportModal(true)}
+            className="flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+            style={{ background: COLORS.charcoal }}
+          >
+            <Printer size={14} style={{ color: COLORS.amber }} />
+            พิมพ์รายงาน / ใบส่งมอบงาน (PDF)
+          </button>
+        </div>
 
         <Header
           title={selectedProject.projectName || "(ไม่ระบุชื่อโครงงาน)"}
@@ -602,6 +618,15 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
             </section>
           ))}
         </div>
+
+        {/* Modal ดูตัวอย่างและสั่งพิมพ์รายงานสรุปงาน / ใบส่งมอบงาน PDF */}
+        {showReportModal && (
+          <ProjectReportModal
+            project={selectedProject}
+            workCatalog={workCatalog}
+            onClose={() => setShowReportModal(false)}
+          />
+        )}
       </div>
     );
   }

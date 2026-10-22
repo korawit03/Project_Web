@@ -3,3 +3,18 @@
 body {
   font-family: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  /* ซ่อน navigation บาร์ และ layout นอกเอกสาร */
+  aside, nav, header, .no-print {
+    display: none !important;
+  }
+}
