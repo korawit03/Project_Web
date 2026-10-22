@@ -54,7 +54,7 @@ export default function ProjectReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs print:static print:p-0 print:bg-white print:z-auto print:block">
+    <div id="print-document-root" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs">
       {/* กล่อง Modal Container */}
       <div className="flex h-full max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl print:max-h-none print:h-auto print:w-full print:max-w-none print:shadow-none print:rounded-none print:overflow-visible">
         {/* แถบหัว Modal (ซ่อนเวลาสั่งพิมพ์ print) */}
