@@ -54,9 +54,9 @@ export default function ProjectReportModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs print:static print:p-0 print:bg-white print:z-auto print:block">
       {/* กล่อง Modal Container */}
-      <div className="flex h-full max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="flex h-full max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl print:max-h-none print:h-auto print:w-full print:max-w-none print:shadow-none print:rounded-none print:overflow-visible">
         {/* แถบหัว Modal (ซ่อนเวลาสั่งพิมพ์ print) */}
         <div
           className="print:hidden no-print flex items-center justify-between border-b px-5 py-3.5"
@@ -99,12 +99,11 @@ export default function ProjectReportModal({
           </div>
         </div>
 
-        {/* เนื้อหาเอกสารที่พิมพ์ (Scroll ได้บนจอ และพิมพ์พอดีหน้ากระดาษ) */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50 print:bg-white print:p-0 print:overflow-visible">
+        {/* เนื้อหาเอกสารที่พิมพ์ (Scroll ได้บนจอ และพิมพ์พอดีหน้ากระดาษ A4) */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-50 print:bg-white print:p-0 print:overflow-visible print:h-auto print:block">
           <div
             ref={printAreaRef}
-            className="mx-auto max-w-[210mm] bg-white p-6 sm:p-10 shadow-sm print:shadow-none print:p-0 text-gray-900 rounded-xl print:rounded-none"
-            style={{ minHeight: "297mm" }}
+            className="mx-auto max-w-[210mm] w-full bg-white p-6 sm:p-10 shadow-sm print:shadow-none print:p-0 text-gray-900 rounded-xl print:rounded-none print:max-w-none print:w-full"
           >
             {/* หัวเอกสาร / Letterhead */}
             <div className="border-b-2 pb-5" style={{ borderColor: COLORS.amber }}>
