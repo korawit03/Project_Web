@@ -104,13 +104,26 @@ export default function WorkItemCard({
       </div>
 
       <div className="p-4 space-y-4">
-        <div>
-          <FieldLabel icon={Tag} tone="amber">ชื่อชิ้นงาน</FieldLabel>
-          <TextInput
-            placeholder="เช่น ประตูห้องนอนชั้น 2"
-            value={item.itemName || ""}
-            onChange={(e) => set({ itemName: e.target.value })}
-          />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="sm:col-span-2">
+            <FieldLabel icon={Tag} tone="amber">ชื่อชิ้นงาน</FieldLabel>
+            <TextInput
+              placeholder="เช่น ประตูห้องนอนชั้น 2"
+              value={item.itemName || ""}
+              onChange={(e) => set({ itemName: e.target.value })}
+            />
+          </div>
+          <div>
+            <FieldLabel icon={Coins} tone="amber">ราคา / มูลค่า (บาท)</FieldLabel>
+            <TextInput
+              type="number"
+              min="0"
+              step="any"
+              placeholder="เช่น 3500 (ไม่ระบุก็ได้)"
+              value={item.price || ""}
+              onChange={(e) => set({ price: e.target.value })}
+            />
+          </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
