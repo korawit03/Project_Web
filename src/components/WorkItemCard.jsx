@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle, Camera, CheckCircle2 } from "lucide-react";
+import { Wrench, Layers2, MapPin, Tag, Trash2, Layers, AlertCircle, Camera, CheckCircle2, Coins } from "lucide-react";
 import { FieldLabel, TextInput, Select, ErrorText } from "./ui.jsx";
 import PhotoDropzone from "./PhotoDropzone.jsx";
 import { isNoneValue, isFieldVisible } from "../lib/validation.js";

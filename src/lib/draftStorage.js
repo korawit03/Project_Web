@@ -43,6 +43,7 @@ export function hasDraftContent(draft) {
     if (it.positionDetail && it.positionDetail.trim().length > 0) return true;
     if (it.note && it.note.trim().length > 0) return true;
     if (it.workDetail && it.workDetail.trim().length > 0) return true;
+    if (it.price && String(it.price).trim().length > 0) return true;
     if (it.positionPhotos && it.positionPhotos.length > 0) return true;
     if (it.workPhotos && it.workPhotos.length > 0) return true;
     if (it.answers && Object.keys(it.answers).length > 0) return true;
@@ -68,6 +69,7 @@ export async function saveFormDraft(draftData) {
       positionNote: item.positionNote || "",
       positionDetail: item.positionDetail || "",
       workDetail: item.workDetail || "",
+      price: item.price || "",
       note: item.note || "",
       status: item.status || "pending",
       positionPhotos: (item.positionPhotos || []).map((p) => ({

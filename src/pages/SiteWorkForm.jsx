@@ -40,6 +40,7 @@ function newWorkItem() {
     workDetail: "",
     positionPhotos: [],
     workPhotos: [],
+    price: "",
     note: "",
 
     status: DEFAULT_STATUS,

@@ -15,7 +15,7 @@ export async function saveWorkItem(item, sortOrder, projectId, workCatalog) {
       category,
       sub_type: item.mainWork,
       position_note: item.positionNote,
-      details: item.answers,
+      details: { ...item.answers, ...(item.price != null && item.price !== "" ? { item_price: Number(item.price) } : {}) },
       note: item.note,
       status: item.status || DEFAULT_STATUS,
       sort_order: sortOrder,

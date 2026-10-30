@@ -57,6 +57,7 @@ function mapProjectFromDb(row) {
         itemName: it.item_name || "",
         mainWork: it.sub_type,
         answers: it.details || {},
+        price: it.details?.item_price ?? "",
         positionNote: it.position_note || "",
         note: it.note || "",
         positionDetail: it.position_detail || "",

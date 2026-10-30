@@ -22,6 +22,7 @@ import {
   Printer,
   FileText,
   Map as MapIcon,
+  Coins,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { countByStatus, getStatusMeta } from "../lib/status.js";
@@ -404,6 +405,11 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
     const totalBeforePhotos = allItems.reduce((acc, it) => acc + (it.positionPhotos?.length || 0), 0);
     const totalAfterPhotos = allItems.reduce((acc, it) => acc + (it.workPhotos?.length || 0), 0);
 
+    const totalProjectPrice = allItems.reduce((acc, it) => acc + (Number(it.price) || 0), 0);
+    const completedPrice = allItems.filter(it => it.status === "done").reduce((acc, it) => acc + (Number(it.price) || 0), 0);
+    const pendingPrice = totalProjectPrice - completedPrice;
+    const hasAnyPrice = allItems.some(it => it.price != null && it.price !== "" && Number(it.price) > 0);
+
     return (
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -446,6 +452,39 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
               <CheckCircle2 size={11} />
               หลังทำเสร็จ (After): {totalAfterPhotos} รูป
             </span>
+          </div>
+        )}
+
+        {/* สรุปค่าใช้จ่ายและมูลค่างาน */}
+        {hasAnyPrice && (
+          <div className="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border p-4 bg-white shadow-2xs" style={{ borderColor: COLORS.border }}>
+            <div className="space-y-1">
+              <span className="text-[11px] font-semibold text-gray-500 flex items-center gap-1">
+                <Coins size={13} className="text-amber-500" />
+                มูลค่ารวมทั้งโครงการ
+              </span>
+              <p className="text-lg font-bold text-gray-900">
+                ฿{totalProjectPrice.toLocaleString("th-TH")}
+              </p>
+            </div>
+            <div className="space-y-1 sm:border-l sm:pl-4" style={{ borderColor: COLORS.border }}>
+              <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                <CheckCircle2 size={13} />
+                มูลค่างานที่เสร็จแล้ว
+              </span>
+              <p className="text-lg font-bold text-emerald-600">
+                ฿{completedPrice.toLocaleString("th-TH")}
+              </p>
+            </div>
+            <div className="space-y-1 sm:border-l sm:pl-4" style={{ borderColor: COLORS.border }}>
+              <span className="text-[11px] font-semibold text-amber-600 flex items-center gap-1">
+                <Coins size={13} />
+                มูลค่างานคงค้าง
+              </span>
+              <p className="text-lg font-bold text-amber-600">
+                ฿{pendingPrice.toLocaleString("th-TH")}
+              </p>
+            </div>
           </div>
         )}
 
@@ -540,9 +579,16 @@ export default function ProjectDetailPage({ projects, loading, onItemStatusChang
                               {idx + 1}
                             </span>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
-                                {item.itemName || item.mainWork || "(ยังไม่ระบุชิ้นงาน)"}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-sm font-semibold" style={{ color: COLORS.charcoal }}>
+                                  {item.itemName || item.mainWork || "(ยังไม่ระบุชิ้นงาน)"}
+                                </p>
+                                {item.price != null && item.price !== "" && Number(item.price) > 0 && (
+                                  <span className="shrink-0 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-200">
+                                    ฿{Number(item.price).toLocaleString("th-TH")}
+                                  </span>
+                                )}
+                              </div>
                               {item.itemName && item.mainWork && (
                                 <p className="truncate text-xs" style={{ color: COLORS.textMuted }}>
                                   {item.mainWork}

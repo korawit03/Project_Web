@@ -11,6 +11,7 @@ import {
   Clock,
   Layers,
   Camera,
+  Coins,
 } from "lucide-react";
 import { COLORS } from "../lib/tokens.js";
 import { getStatusMeta } from "../lib/status.js";
@@ -39,6 +40,8 @@ export default function ProjectReportModal({
   const completedCount = items.filter((it) => it.status === "done").length;
   const inProgressCount = items.filter((it) => it.status === "in_progress").length;
   const pendingCount = items.filter((it) => it.status === "pending").length;
+  const totalPrice = items.reduce((acc, it) => acc + (Number(it.price) || 0), 0);
+  const hasPrice = items.some((it) => it.price != null && it.price !== "" && Number(it.price) > 0);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
@@ -240,12 +243,19 @@ export default function ProjectReportModal({
                         </div>
                       </div>
 
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium"
-                        style={{ color: statusMeta.color, background: statusMeta.bg }}
-                      >
-                        {statusMeta.label}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {item.price != null && item.price !== "" && Number(item.price) > 0 && (
+                          <span className="font-bold text-gray-900 text-xs">
+                            ฿{Number(item.price).toLocaleString("th-TH")}
+                          </span>
+                        )}
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                          style={{ color: statusMeta.color, background: statusMeta.bg }}
+                        >
+                          {statusMeta.label}
+                        </span>
+                      </div>
                     </div>
 
                     {/* ข้อมูลสเปก / Answers */}
@@ -355,6 +365,21 @@ export default function ProjectReportModal({
                 );
               })}
             </div>
+
+            {/* ตารางสรุปยอดเงินรวม (ถ้ามีระบุราคา) */}
+            {hasPrice && (
+              <div className="mt-6 rounded-xl border bg-gray-50/80 p-4 break-inside-avoid" style={{ borderColor: COLORS.border }}>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                    <Coins size={16} className="text-amber-600" />
+                    ยอดรวมค่าใช้จ่ายทั้งโครงการ (Total Amount)
+                  </span>
+                  <span className="text-base font-extrabold text-gray-900">
+                    ฿{totalPrice.toLocaleString("th-TH")} บาท
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* ส่วนลงนามลายเซ็น (Signatures) */}
             <div className="mt-10 pt-6 border-t break-inside-avoid" style={{ borderColor: COLORS.border }}>
